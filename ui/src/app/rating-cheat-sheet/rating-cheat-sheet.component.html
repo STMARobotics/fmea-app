@@ -1,0 +1,44 @@
+<span
+  class="rating-help"
+  (mouseenter)="onMouseEnter($event)"
+  (mouseleave)="isHovered = false"
+  (focusin)="onFocusIn($event)"
+  (focusout)="isFocused = false"
+>
+  <button
+    #helpButton
+    class="help-button"
+    type="button"
+    [attr.aria-label]="'Show ' + guide.title + ' rating guide'"
+    [attr.aria-expanded]="isOpen"
+    (click)="toggle(helpButton)"
+  >?</button>
+
+  @if (isOpen) {
+    <div
+      class="rating-help-panel"
+      role="region"
+      [attr.aria-label]="guide.title + ' rating guide'"
+      [style.left.px]="panelLeft"
+      [style.top.px]="panelTop"
+    >
+      <section class="rating-chart">
+        <h2>{{ guide.title }}</h2>
+        <table>
+          <caption>{{ guide.caption }}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Score</th>
+              <th scope="col">{{ rating === 'occurrence' ? 'Chance' : 'Meaning' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of guide.rows; track row.score) {
+              <tr><th scope="row">{{ row.score }}</th><td>{{ row.description }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    </div>
+  }
+</span>

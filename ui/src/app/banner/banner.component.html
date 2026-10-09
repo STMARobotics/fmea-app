@@ -1,0 +1,44 @@
+<div class="banner">
+  <mat-form-field appearance="outline">
+    <mat-label>Team</mat-label>
+    <mat-select [value]="selectedTeamId" (selectionChange)="onTeamSelected($event.value)">
+      @for (team of teams$ | async; track team.id) {
+      <mat-option [value]="team.id">{{team.program.toUpperCase()}} {{team.num}} – {{team.name}}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (selectedTeamId$ | async) {
+  <mat-form-field appearance="outline">
+    <mat-label>Season</mat-label>
+    <mat-select [value]="selectedSeasonId" (selectionChange)="onSeasonSelected($event.value)">
+      @for (season of seasons$ | async; track season.id) {
+      <mat-option [value]="season.id">{{season.name}}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  }
+
+  <div class="banner-actions">
+    <nav class="page-nav" aria-label="Main navigation">
+      <a class="page-nav-link" routerLink="/fmea" routerLinkActive="active" ariaCurrentWhenActive="page">FMEA table</a>
+      <a class="page-nav-link" routerLink="/action-items" routerLinkActive="active" ariaCurrentWhenActive="page">Action items</a>
+    </nav>
+    @if (eventReadiness$ | async; as eventReadiness) {
+      <div
+        class="readiness-chip"
+        [class.not-event-ready]="eventReadiness.level === 'not-event-ready'"
+        [class.event-ready]="eventReadiness.level === 'event-ready'"
+        [class.einstein-ready]="eventReadiness.level === 'einstein-ready'"
+        [class.unavailable]="eventReadiness.level === 'unavailable'"
+        role="status"
+      >
+        {{ eventReadiness.label }}
+      </div>
+    }
+
+    <a class="help-link" routerLink="/about-fmea" aria-label="Learn about FMEA" title="Learn about FMEA">
+      <span aria-hidden="true">?</span>
+    </a>
+  </div>
+</div>

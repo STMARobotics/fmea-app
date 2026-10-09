@@ -1,0 +1,65 @@
+<main class="fmea-page">
+  @if (selectedTeamId$ | async) {
+    @if (selectedSeasonId$ | async) {
+      @if (fmeaEntries$ | async; as fmeaEntries) {
+        <div class="controls-bar">
+          <a class="create-entry-link" routerLink="/fmea/new">Create new FMEA entry</a>
+          @if (fmeaEntries.length > 0) {
+            @if (subsystemNames$ | async; as subsystemNames) {
+              <div class="filter-controls">
+                <mat-form-field appearance="outline">
+                  <mat-label>Action items</mat-label>
+                  <mat-select
+                    [value]="actionItemFilter"
+                    (selectionChange)="onActionItemFilterSelected($event.value)"
+                  >
+                    <mat-option value="all">All items</mat-option>
+                    <mat-option value="moderate-critical-no-active">Moderate/critical without active action item</mat-option>
+                    <mat-option value="not_started">Not started action items</mat-option>
+                    <mat-option value="in_progress">In-progress action items</mat-option>
+                    <mat-option value="assembly_note">Assembly notes</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                @if (subsystemNames.length > 0) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Subsystem</mat-label>
+                    <mat-select [value]="selectedSubsystem" (selectionChange)="onSubsystemSelected($event.value)">
+                      <mat-option value="">All subsystems</mat-option>
+                      @for (subsystem of subsystemNames; track subsystem) {
+                        <mat-option [value]="subsystem">{{ subsystem }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                }
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Sort by</mat-label>
+                  <mat-select [value]="selectedSort" (selectionChange)="onSortSelected($event.value)">
+                    <mat-option value="rpn">RPN (high to low)</mat-option>
+                    <mat-option value="subsystem">Subsystem</mat-option>
+                    <mat-option value="last-updated-asc">Last updated (oldest to newest)</mat-option>
+                    <mat-option value="last-updated-desc">Last updated (newest to oldest)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <button class="reset-filters-button" type="button" (click)="onResetFilters()">Reset filters</button>
+              </div>
+            }
+          }
+        </div>
+
+        @if (fmeaEntries.length === 0) {
+          <p class="empty-state" role="status">
+            No FMEA entries have been added for this team and season yet.
+          </p>
+        } @else {
+          <section class="fmea-grid">
+            @for (entry of displayedFmeaEntries$ | async; track entry.id) {
+              <fmea-entry-card [fmeaEntry]="entry"></fmea-entry-card>
+            }
+          </section>
+        }
+      }
+    }
+  }
+</main>

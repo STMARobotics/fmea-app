@@ -1,0 +1,132 @@
+<main class="fmea-info-page">
+  <button class="back-link" type="button" (click)="goBack()">← Back</button>
+
+  <article class="info-card">
+    <p class="eyebrow">A practical guide</p>
+    <h1>What is FMEA?</h1>
+    <p class="intro">
+      Failure Mode and Effects Analysis (FMEA) is a structured way to identify
+      how a system could fail, understand the impact, and decide what to do
+      before that failure happens.
+    </p>
+
+    <section>
+      <h2>How it works</h2>
+      <ol>
+        <li><strong>Describe the failure mode</strong> and its effect on the robot or team.</li>
+        <li><strong>Identify potential causes</strong> and the controls already in place.</li>
+        <li><strong>Rate the risk</strong> using severity, occurrence, and detection.</li>
+        <li><strong>Plan action items</strong> to reduce risk, then review and update the analysis.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Understanding the ratings</h2>
+      <dl class="rating-list">
+        <div>
+          <dt>Severity (S)</dt>
+          <dd>How serious the worst credible consequence would be if the failure happened.</dd>
+        </div>
+        <div>
+          <dt>Occurrence (O)</dt>
+          <dd>How likely the failure is to happen in any one match.</dd>
+        </div>
+        <div>
+          <dt>Detection (D)</dt>
+          <dd>How likely the team's current checks are to miss the issue before it affects a match.</dd>
+        </div>
+      </dl>
+      <p class="rating-scope">
+        Rate failures in the context of an FRC competition event, not across a whole
+        season. For match-related failures, estimate occurrence per match; the chance
+        of seeing it at least once over an event will rise with the number of matches.
+        Severity is the consequence, not the chance of occurrence. Detection is based
+        on checks and safeguards the team currently uses. Higher detection scores mean
+        those controls are less likely to catch the issue in time. These are practical
+        guideposts, not a universal FMEA scale.
+      </p>
+
+      <div class="rating-charts">
+        <div class="rating-chart">
+          <h3>Severity (S)</h3>
+          <table>
+            <caption>Worst credible consequence if the failure happens during the event</caption>
+            <thead>
+              <tr><th scope="col">Score</th><th scope="col">Meaning</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">1</th><td>No noticeable effect on match performance.</td></tr>
+              <tr><th scope="row">2</th><td>Minor inconvenience; the robot performs as planned.</td></tr>
+              <tr><th scope="row">3</th><td>Brief disruption, with no meaningful loss of function.</td></tr>
+              <tr><th scope="row">4</th><td>Small performance reduction; the robot completes its planned role.</td></tr>
+              <tr><th scope="row">5</th><td>Clear performance loss, but the robot still contributes.</td></tr>
+              <tr><th scope="row">6</th><td>An important function is lost, limiting the robot's contribution.</td></tr>
+              <tr><th scope="row">7</th><td>The robot cannot perform its planned role for a significant part of a match.</td></tr>
+              <tr><th scope="row">8</th><td>The robot is disabled or provides little contribution for most of a match.</td></tr>
+              <tr><th scope="row">9</th><td>The match outcome is likely affected, or substantial damage requires lengthy repair.</td></tr>
+              <tr><th scope="row">10</th><td>A serious safety hazard occurs, or damage makes the robot unusable for the rest of the event.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="rating-chart">
+          <h3>Occurrence (O)</h3>
+          <table>
+            <caption>Approximate chance the failure happens in any one match</caption>
+            <thead>
+              <tr><th scope="col">Score</th><th scope="col">Chance</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">1</th><td>Less than 1% — exceptionally unlikely.</td></tr>
+              <tr><th scope="row">2</th><td>1% to less than 5% — very rare.</td></tr>
+              <tr><th scope="row">3</th><td>5% to less than 10% — rare.</td></tr>
+              <tr><th scope="row">4</th><td>10% to less than 20% — unlikely.</td></tr>
+              <tr><th scope="row">5</th><td>20% to less than 30% — occasional.</td></tr>
+              <tr><th scope="row">6</th><td>30% to less than 45% — plausible.</td></tr>
+              <tr><th scope="row">7</th><td>45% to less than 60% — fairly likely.</td></tr>
+              <tr><th scope="row">8</th><td>60% to less than 75% — likely.</td></tr>
+              <tr><th scope="row">9</th><td>75% to 90% — very likely.</td></tr>
+              <tr><th scope="row">10</th><td>More than 90% — almost certain.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="rating-chart">
+          <h3>Detection (D)</h3>
+          <table>
+            <caption>Chance the team's current checks miss the issue before it affects a match</caption>
+            <thead>
+              <tr><th scope="col">Score</th><th scope="col">Meaning</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">1</th><td>Automatic safeguards almost always detect or prevent it before match impact.</td></tr>
+              <tr><th scope="row">2</th><td>A reliable built-in check catches it in nearly every case.</td></tr>
+              <tr><th scope="row">3</th><td>Routine pre-match checks are very likely to catch it.</td></tr>
+              <tr><th scope="row">4</th><td>Routine checks usually catch it, though misses are possible.</td></tr>
+              <tr><th scope="row">5</th><td>A deliberate, targeted check is more likely than not to catch it.</td></tr>
+              <tr><th scope="row">6</th><td>Checks catch it inconsistently; it may reach a match unnoticed.</td></tr>
+              <tr><th scope="row">7</th><td>Routine checks usually miss it; a specific test is needed.</td></tr>
+              <tr><th scope="row">8</th><td>It is unlikely to be caught without specialized testing or diagnostics.</td></tr>
+              <tr><th scope="row">9</th><td>Existing checks almost never catch it before it affects a match.</td></tr>
+              <tr><th scope="row">10</th><td>No known practical check catches it before it affects a match.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p>
+        The Risk Priority Number (RPN) is calculated as <strong>S × O × D</strong>.
+        It helps teams compare risks and prioritize follow-up; it is a guide for
+        discussion, not a substitute for engineering judgment.
+      </p>
+    </section>
+
+    <section>
+      <h2>Keep it useful</h2>
+      <p>
+        Review the FMEA as the design, build, and testing progress. When an action
+        is completed or new information becomes available, update the entry so
+        the team has a current picture of its risks.
+      </p>
+    </section>
+  </article>
+</main>

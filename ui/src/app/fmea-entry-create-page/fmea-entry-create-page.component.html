@@ -1,0 +1,118 @@
+<main class="create-page">
+  <a class="back-link" routerLink="/fmea">← Back to FMEA</a>
+
+  <article class="create-card">
+    <p class="eyebrow">New analysis</p>
+    <h1>New FMEA entry</h1>
+
+    @if (selectedTeamId$ | async; as teamId) {
+      @if (selectedSeasonId$ | async; as seasonId) {
+        <p class="selection-summary">This entry will be added for the selected team and season.</p>
+        @if (subsystemState$ | async; as state) {
+          @if (state.kind === 'unavailable') {
+            <p class="message" role="status">Loading subsystems…</p>
+          } @else if (state.kind === 'error') {
+            <p class="message error" role="alert">{{ state.message }}</p>
+          } @else if (state.kind === 'loaded' && state.subsystems.length === 0) {
+            <p class="message" role="status">No subsystems are available for this team and season.</p>
+          } @else if (state.kind === 'loaded') {
+            <form [formGroup]="form" (ngSubmit)="onSubmit()">
+              <label class="field">
+                <span>Subsystem</span>
+                <select formControlName="subsystemId">
+                  <option value="" disabled>Select a subsystem</option>
+                  @for (subsystem of state.subsystems; track subsystem.id) {
+                    <option [value]="subsystem.id">{{ subsystem.name }}</option>
+                  }
+                </select>
+                @if (form.controls.subsystemId.touched && form.controls.subsystemId.invalid) {
+                  <span class="field-error">Select a subsystem.</span>
+                }
+              </label>
+
+              <label class="field">
+                <span>Failure mode</span>
+                <input formControlName="failureMode" type="text" autocomplete="off" required>
+                @if (form.controls.failureMode.touched && form.controls.failureMode.invalid) {
+                  <span class="field-error">Enter a failure mode.</span>
+                }
+              </label>
+
+              <label class="field">
+                <span>Failure effect</span>
+                <textarea formControlName="failureEffect" rows="3" required></textarea>
+                @if (form.controls.failureEffect.touched && form.controls.failureEffect.invalid) {
+                  <span class="field-error">Enter the failure effect.</span>
+                }
+              </label>
+
+              <label class="field">
+                <span>Potential causes</span>
+                <textarea formControlName="potentialCauses" rows="3" required></textarea>
+                @if (form.controls.potentialCauses.touched && form.controls.potentialCauses.invalid) {
+                  <span class="field-error">Enter at least one potential cause.</span>
+                }
+              </label>
+
+              <label class="field">
+                <span>Current process controls</span>
+                <textarea formControlName="currentProcessControls" rows="3" required></textarea>
+                @if (form.controls.currentProcessControls.touched && form.controls.currentProcessControls.invalid) {
+                  <span class="field-error">Enter current process controls, or "None".</span>
+                }
+              </label>
+
+              <div class="rating-heading">
+                <h2>Risk assessment</h2>
+              </div>
+              <div class="ratings">
+                <div class="field">
+                  <div class="rating-label">
+                    <label for="new-severity">Severity (1–10)</label>
+                    <app-rating-cheat-sheet rating="severity"></app-rating-cheat-sheet>
+                  </div>
+                  <input id="new-severity" formControlName="sev" type="number" min="1" max="10" step="1" required>
+                  @if (form.controls.sev.touched && form.controls.sev.invalid) {
+                    <span class="field-error">Enter a whole number from 1 to 10.</span>
+                  }
+                </div>
+                <div class="field">
+                  <div class="rating-label">
+                    <label for="new-occurrence">Occurrence (1–10)</label>
+                    <app-rating-cheat-sheet rating="occurrence"></app-rating-cheat-sheet>
+                  </div>
+                  <input id="new-occurrence" formControlName="occ" type="number" min="1" max="10" step="1" required>
+                  @if (form.controls.occ.touched && form.controls.occ.invalid) {
+                    <span class="field-error">Enter a whole number from 1 to 10.</span>
+                  }
+                </div>
+                <div class="field">
+                  <div class="rating-label">
+                    <label for="new-detection">Detection (1–10)</label>
+                    <app-rating-cheat-sheet rating="detection"></app-rating-cheat-sheet>
+                  </div>
+                  <input id="new-detection" formControlName="det" type="number" min="1" max="10" step="1" required>
+                  @if (form.controls.det.touched && form.controls.det.invalid) {
+                    <span class="field-error">Enter a whole number from 1 to 10.</span>
+                  }
+                </div>
+              </div>
+
+              @if (submissionError) {
+                <p class="message error" role="alert">{{ submissionError }}</p>
+              }
+
+              <button type="submit" [disabled]="form.invalid || submitting">
+                {{ submitting ? 'Creating…' : 'Create entry' }}
+              </button>
+            </form>
+          }
+        }
+      } @else {
+        <p class="message" role="status">Select a season in the header before creating an entry.</p>
+      }
+    } @else {
+      <p class="message" role="status">Select a team and season in the header before creating an entry.</p>
+    }
+  </article>
+</main>

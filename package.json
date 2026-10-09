@@ -1,0 +1,25 @@
+{
+  "name": "fmea-app",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/STMARobotics/fmea-app#readme",
+  "bugs": {
+    "url": "https://github.com/STMARobotics/fmea-app/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/STMARobotics/fmea-app.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:ui": "npm run dev -w ui"
+  },
+  "workspaces": [
+    "service",
+    "ui"
+  ]
+}

@@ -1,0 +1,67 @@
+<a class="fmea-entry-link" [routerLink]="['/fmea', fmeaEntry().id]" [attr.aria-label]="'View details for ' + fmeaEntry().failureMode">
+  <mat-card
+    class="fmea-entry"
+    [class.risk-low]="riskLevel() === 'low'"
+    [class.risk-moderate]="riskLevel() === 'moderate'"
+    [class.risk-critical]="riskLevel() === 'critical'"
+    appearance="outlined"
+  >
+    <mat-card-content>
+      <div class="card-topline">
+        <span class="subsystem">{{ fmeaEntry().subsystem.name }}</span>
+      </div>
+
+      <h2>{{ fmeaEntry().failureMode }}</h2>
+      <p class="failure-effect">{{ fmeaEntry().failureEffect }}</p>
+
+      @if (actionItemCounts().notStarted > 0 || actionItemCounts().inProgress > 0 || actionItemCounts().assemblyNotes > 0) {
+        <div class="action-statuses" aria-label="Action item status summary">
+          <span class="action-status-label">Action items</span>
+          @if (actionItemCounts().notStarted > 0) {
+            <span class="action-status not-started" [attr.aria-label]="actionItemCounts().notStarted + ' not started action items'">
+              Not started: {{ actionItemCounts().notStarted }}
+            </span>
+          }
+          @if (actionItemCounts().inProgress > 0) {
+            <span class="action-status in-progress" [attr.aria-label]="actionItemCounts().inProgress + ' in progress action items'">
+              In progress: {{ actionItemCounts().inProgress }}
+            </span>
+          }
+          @if (actionItemCounts().assemblyNotes > 0) {
+            <span class="action-status assembly-note" [attr.aria-label]="actionItemCounts().assemblyNotes + ' assembly notes'">
+              Assembly notes: {{ actionItemCounts().assemblyNotes }}
+            </span>
+          }
+        </div>
+      }
+
+      <div class="card-summary">
+        <div class="ratings" aria-label="Severity, occurrence, and detection ratings">
+          <div class="rating">
+            <span>S</span>
+            <strong>{{ fmeaEntry().sev }}</strong>
+          </div>
+          <div class="rating">
+            <span>O</span>
+            <strong>{{ fmeaEntry().occ }}</strong>
+          </div>
+          <div class="rating">
+            <span>D</span>
+            <strong>{{ fmeaEntry().det }}</strong>
+          </div>
+        </div>
+
+        <div
+          class="rpn"
+          [class.risk-low]="riskLevel() === 'low'"
+          [class.risk-moderate]="riskLevel() === 'moderate'"
+          [class.risk-critical]="riskLevel() === 'critical'"
+          [attr.aria-label]="'Risk priority number ' + rpn()"
+        >
+          <span>RPN</span>
+          <strong>{{ rpn() }}</strong>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</a>

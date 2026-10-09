@@ -1,0 +1,189 @@
+.fmea-info-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 28px 32px 48px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #85bdff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.back-link:hover {
+  color: #b5d8ff;
+  text-decoration: underline;
+}
+
+.info-card {
+  padding: clamp(22px, 5vw, 44px);
+  border: 1px solid #24272b;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #151719, #101113);
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #75d59b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0 0 14px;
+  color: #f3f6fa;
+  font-size: clamp(28px, 5vw, 40px);
+  line-height: 1.2;
+}
+
+h2 {
+  margin: 0 0 14px;
+  color: #f3f6fa;
+  font-size: 19px;
+}
+
+p,
+li,
+dd {
+  color: #b8c2cd;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.intro {
+  max-width: 760px;
+  margin: 0;
+  font-size: 17px;
+}
+
+section {
+  margin-top: 34px;
+  padding-top: 26px;
+  border-top: 1px solid #292d31;
+}
+
+ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+li {
+  padding-left: 4px;
+}
+
+strong,
+dt {
+  color: #e8edf2;
+}
+
+.rating-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.rating-list div {
+  padding: 14px 16px;
+  border: 1px solid #292d31;
+  border-radius: 10px;
+  background: #0b0c0e;
+}
+
+dt {
+  margin-bottom: 3px;
+  font-weight: 700;
+}
+
+dd {
+  margin: 0;
+}
+
+.rating-scope {
+  margin: 0 0 22px;
+}
+
+.rating-charts {
+  display: grid;
+  gap: 24px;
+}
+
+.rating-chart {
+  min-width: 0;
+}
+
+h3 {
+  margin: 0 0 10px;
+  color: #e8edf2;
+  font-size: 16px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #292d31;
+  border-radius: 10px;
+  background: #0b0c0e;
+  overflow: hidden;
+}
+
+caption {
+  padding: 0 0 8px;
+  color: #b8c2cd;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #292d31;
+  color: #b8c2cd;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  color: #e8edf2;
+  font-weight: 700;
+}
+
+tbody th {
+  width: 72px;
+  color: #e8edf2;
+  font-weight: 700;
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+section > p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 600px) {
+  .fmea-info-page {
+    padding: 20px 18px 36px;
+  }
+
+  th,
+  td {
+    padding: 9px 10px;
+    font-size: 13px;
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "fmea-service",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/handler.ts",
+  "scripts": {
+    "build": "tsc"
+  }
+}

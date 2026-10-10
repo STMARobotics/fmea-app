@@ -75,7 +75,7 @@ export class FrontendStack extends cdk.Stack {
     // 5. Automatically deploy built UI assets to S3 and invalidate CloudFront
     // Note: Ensure /ui/dist exists or update path to match your UI build directory
     new s3deploy.BucketDeployment(this, 'DeployFrontend', {
-      sources: [s3deploy.Source.asset(path.join(__dirname, '../../ui/dist'))],
+      sources: [s3deploy.Source.asset(path.join(__dirname, '../../ui/dist/fmea-poc-ui/browser'))],
       destinationBucket: siteBucket,
       distribution: distribution,
       distributionPaths: ['/*'],

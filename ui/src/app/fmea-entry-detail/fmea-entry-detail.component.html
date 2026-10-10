@@ -1,0 +1,158 @@
+<main class="fmea-detail-page">
+  @if (detailState$ | async; as state) {
+    <div class="entry-actions page-nav">
+      <button class="back-link" type="button" (click)="goBack()">← Back</button>
+      @if (state.kind === 'loaded' && !editing) {
+        <button class="edit-button" type="button" (click)="startEditing(currentEntry(state.entry))">Edit</button>
+      }
+    </div>
+
+    @if (state.kind === 'loading') {
+      <p class="message" role="status">Loading FMEA item…</p>
+    } @else if (state.kind === 'error') {
+      <p class="message error" role="alert">{{ state.message }}</p>
+    } @else {
+      @let entry = currentEntry(state.entry);
+      <article class="detail-content">
+        <form [formGroup]="form" (ngSubmit)="saveChanges(entry)">
+          <header class="detail-header">
+            <div class="header-copy">
+              <span class="subsystem">{{ entry.subsystem.name }}</span>
+              @if (editing) {
+                <label class="field">
+                  <span>Failure mode</span>
+                  <input formControlName="failureMode" type="text" required>
+                </label>
+              } @else {
+                <h1>{{ entry.failureMode }}</h1>
+              }
+              <p class="team">{{ entry.id }}</p>
+            </div>
+            <div class="rpn" [class]="'rpn risk-' + currentRiskLevelFor(entry)">
+              <span>Risk priority number</span>
+              <strong>{{ editing ? form.controls.sev.value * form.controls.occ.value * form.controls.det.value : rpnFor(entry) }}</strong>
+              <span class="risk-label">{{ currentRiskLevelFor(entry) }}</span>
+            </div>
+          </header>
+
+          <section class="detail-section">
+            @if (editing) {
+              <label class="field">
+                <span>Failure effect</span>
+                <textarea formControlName="failureEffect" rows="3" required></textarea>
+              </label>
+            } @else {
+              <h2>Failure effect</h2>
+              <p>{{ entry.failureEffect }}</p>
+            }
+          </section>
+
+          <section class="detail-section">
+            <h2>Risk assessment</h2>
+            <div class="ratings">
+              <div class="rating">
+                <div class="rating-label">
+                  <span>Severity (S)</span>
+                  <app-rating-cheat-sheet rating="severity"></app-rating-cheat-sheet>
+                </div>
+                @if (editing) {
+                  <input formControlName="sev" type="number" min="1" max="10" step="1" required>
+                } @else {
+                  <strong>{{ entry.sev }}</strong>
+                }
+              </div>
+              <div class="rating">
+                <div class="rating-label">
+                  <span>Occurrence (O)</span>
+                  <app-rating-cheat-sheet rating="occurrence"></app-rating-cheat-sheet>
+                </div>
+                @if (editing) {
+                  <input formControlName="occ" type="number" min="1" max="10" step="1" required>
+                } @else {
+                  <strong>{{ entry.occ }}</strong>
+                }
+              </div>
+              <div class="rating">
+                <div class="rating-label">
+                  <span>Detection (D)</span>
+                  <app-rating-cheat-sheet rating="detection"></app-rating-cheat-sheet>
+                </div>
+                @if (editing) {
+                  <input formControlName="det" type="number" min="1" max="10" step="1" required>
+                } @else {
+                  <strong>{{ entry.det }}</strong>
+                }
+              </div>
+            </div>
+          </section>
+
+          <div class="detail-columns">
+            <section class="detail-section">
+              @if (editing) {
+                <label class="field">
+                  <span>Potential causes</span>
+                  <textarea formControlName="potentialCauses" rows="3" required></textarea>
+                </label>
+              } @else {
+                <h2>Potential causes</h2>
+                <p>{{ entry.potentialCauses }}</p>
+              }
+            </section>
+            <section class="detail-section">
+              @if (editing) {
+                <label class="field">
+                  <span>Current process controls</span>
+                  <textarea formControlName="currentProcessControls" rows="3" required></textarea>
+                </label>
+              } @else {
+                <h2>Current process controls</h2>
+                <p>{{ entry.currentProcessControls }}</p>
+              }
+            </section>
+          </div>
+
+          <section class="detail-section">
+            <h2>Action items <span class="count">{{ entry.actionItems.length }}</span></h2>
+            @if (entry.actionItems.length > 0) {
+              <ul class="action-items">
+                @for (actionItem of entry.actionItems; track actionItem.id) {
+                  <li>
+                    <div>
+                      <p>{{ actionItem.description }}</p>
+                      <span class="updated">Updated {{ actionItem.lastUpdatedAt | date:'mediumDate' }}</span>
+                    </div>
+                    <span class="status" [class]="'status ' + actionItem.status">
+                      {{ actionItem.status.replace('_', ' ') }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="empty">No action items have been added.</p>
+            }
+          </section>
+
+          @if (submissionError) {
+            <p class="message error" role="alert">{{ submissionError }}</p>
+          }
+          @if (editing && form.invalid && form.touched) {
+            <p class="message error" role="alert">Complete all fields and enter whole-number ratings from 1 to 10.</p>
+          }
+
+          <div class="entry-actions">
+            @if (editing) {
+              <button type="submit" [disabled]="saving || confirmingDelete || deleting">
+                {{ saving ? 'Saving…' : 'Save' }}
+              </button>
+              <button type="button" [disabled]="saving || confirmingDelete || deleting" (click)="cancelEditing(entry)">Cancel</button>
+              <button type="button" class="delete-button" [disabled]="saving || confirmingDelete || deleting" (click)="deleteEntry(entry)">
+                {{ deleting ? 'Deleting…' : 'Delete' }}
+              </button>
+            }
+          </div>
+          <p class="updated entry-updated">FMEA item updated {{ entry.lastUpdatedAt | date:'mediumDate' }}</p>
+        </form>
+      </article>
+    }
+  }
+</main>

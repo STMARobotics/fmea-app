@@ -1,0 +1,82 @@
+<main class="action-items-page">
+  @if (state$ | async; as state) {
+    @if (state.kind === 'selection-required') {
+      <p class="message" role="status">Select a team and season to view action items.</p>
+    } @else if (state.kind === 'loading') {
+      <p class="message" role="status">Loading action items…</p>
+    } @else if (state.kind === 'error') {
+      <p class="message error" role="alert">{{ state.message }}</p>
+    } @else if (state.actionItems.length === 0) {
+      <p class="message" role="status">No action items have been added for this team and season yet.</p>
+    } @else {
+      <section class="board" aria-label="Action items by status">
+        <div class="board-toolbar">
+          <mat-form-field appearance="outline">
+            <mat-label>Subsystem</mat-label>
+            <mat-select [value]="selectedSubsystem()" (selectionChange)="onSubsystemSelected($event.value)">
+              <mat-option value="">All subsystems</mat-option>
+              @for (subsystem of subsystemNamesFor(state.actionItems); track subsystem) {
+                <mat-option [value]="subsystem">{{ subsystem }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+        @if (statusUpdateError(); as error) {
+          <p class="message error" role="alert">{{ error }}</p>
+        }
+        <div class="board-columns">
+          @for (column of state.columns; track column.status) {
+            <section
+              class="board-column"
+              [class.drop-target]="dragTargetStatus() === column.status"
+              [attr.aria-label]="column.title"
+              (dragover)="onDragOver(column.status, $event)"
+              (drop)="onDrop(column.status, $event)"
+            >
+              <header class="column-header">
+                <h2>{{ column.title }}</h2>
+                <span class="column-count">{{ filteredItemsFor(column.actionItems).length }}</span>
+              </header>
+              @let visibleItems = filteredItemsFor(column.actionItems);
+              @if (visibleItems.length > 0) {
+                <ul class="action-item-list">
+                  @for (item of visibleItems; track item.id) {
+                    <li
+                      class="action-item"
+                      [class.saving]="isSaving(item.id)"
+                      [attr.draggable]="!isSaving(item.id)"
+                      (dragstart)="onDragStart(item, $event)"
+                      (dragend)="onDragEnd()"
+                    >
+                      <div class="card-topline">
+                        <span class="subsystem">{{ item.subsystem }}</span>
+                      </div>
+                      @if (isSaving(item.id)) {
+                        <span class="saving-label" role="status">Saving status…</span>
+                      }
+                      <p class="description">{{ item.description }}</p>
+                      <p class="related-entry">
+                        <a
+                          class="fmea-link"
+                          [routerLink]="['/fmea', item.fmeaEntryId]"
+                        >
+                          <span>{{ item.failureMode }}</span>
+                          <span class="fmea-link-arrow" aria-hidden="true">→</span>
+                        </a>
+                      </p>
+                      <p class="updated">Updated {{ item.lastUpdatedAt | date:'mediumDate' }}</p>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p class="column-empty">
+                  {{ selectedSubsystem() ? 'No items match this subsystem' : 'No items' }}
+                </p>
+              }
+            </section>
+          }
+        </div>
+      </section>
+    }
+  }
+</main>

@@ -1,0 +1,261 @@
+.fmea-entry-link {
+  display: block;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.fmea-entry-link:focus-visible {
+  border-radius: 16px;
+  outline: 2px solid #85bdff;
+  outline-offset: 3px;
+}
+
+.fmea-entry {
+  height: 100%;
+  border: 1px solid #24272b;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #151719, #101113);
+  color: #eef3f8;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.fmea-entry.risk-low {
+  border-left: 3px solid #55c58a;
+}
+
+.fmea-entry.risk-moderate {
+  border-left: 3px solid #e7ad49;
+}
+
+.fmea-entry.risk-critical {
+  border-left: 3px solid #f06b6b;
+}
+
+.fmea-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgb(0 0 0 / 28%);
+}
+
+.fmea-entry.risk-low:hover {
+  border-color: #55c58a;
+}
+
+.fmea-entry.risk-moderate:hover {
+  border-color: #e7ad49;
+}
+
+.fmea-entry.risk-critical:hover {
+  border-color: #f06b6b;
+}
+
+mat-card-content {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 22px;
+}
+
+.subsystem {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid rgb(96 165 250 / 28%);
+  border-radius: 999px;
+  background: rgb(96 165 250 / 10%);
+  color: #85bdff;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+h2 {
+  margin: 14px 0 8px;
+  color: #f3f6fa;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.failure-effect {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: #aebbc9;
+  font-size: 14px;
+  line-height: 1.5;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.action-statuses {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.action-status-label {
+  margin-right: 2px;
+  color: #8995a1;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.action-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.action-status.not-started {
+  border-color: rgb(96 165 250 / 28%);
+  background: rgb(96 165 250 / 9%);
+  color: #9bcaff;
+}
+
+.action-status.in-progress {
+  border-color: rgb(177 132 255 / 30%);
+  background: rgb(177 132 255 / 10%);
+  color: #c7a8ff;
+}
+
+.action-status.assembly-note {
+  border-color: #3d4248;
+  color: #c5cdd5;
+}
+
+.card-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  align-items: end;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 22px;
+}
+
+.ratings {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rating {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  justify-items: center;
+  padding: 7px 9px;
+  border: 1px solid #292d31;
+  border-radius: 9px;
+  background: #0b0c0e;
+}
+
+.rating span,
+.rpn span {
+  color: #91a0af;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.rating strong {
+  color: #dce5ed;
+  font-size: 14px;
+}
+
+.rpn {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  justify-content: space-between;
+  flex: 0 0 132px;
+  width: 132px;
+  gap: 10px;
+  padding: 9px 13px;
+  border: 1px solid rgb(96 165 250 / 24%);
+  border-radius: 10px;
+  background: rgb(96 165 250 / 9%);
+}
+
+.rpn.risk-low {
+  border-color: rgb(85 197 138 / 42%);
+  background: rgb(85 197 138 / 12%);
+}
+
+.rpn.risk-moderate {
+  border-color: rgb(231 173 73 / 45%);
+  background: rgb(231 173 73 / 12%);
+}
+
+.rpn.risk-critical {
+  border-color: rgb(240 107 107 / 48%);
+  background: rgb(240 107 107 / 13%);
+}
+
+.rpn strong {
+  color: #85bdff;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.rpn.risk-low strong {
+  color: #75d59b;
+}
+
+.rpn.risk-moderate strong {
+  color: #f0bd61;
+}
+
+.rpn.risk-critical strong {
+  color: #ff8585;
+}
+
+@media (max-width: 380px) {
+  mat-card-content {
+    padding: 18px;
+  }
+
+  .card-summary {
+    gap: 10px;
+  }
+
+  .ratings {
+    gap: 5px;
+  }
+
+  .rating {
+    min-width: 40px;
+    padding: 6px;
+  }
+
+  .rpn {
+    gap: 7px;
+    padding: 8px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fmea-entry {
+    transition: none;
+  }
+
+  .fmea-entry:hover {
+    transform: none;
+  }
+}

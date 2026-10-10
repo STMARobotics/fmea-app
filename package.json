@@ -1,29 +1,31 @@
 {
   "name": "fmea-app",
   "version": "1.0.0",
-  "description": "FMEA App Monorepo",
+  "description": "",
   "private": true,
-  "workspaces": [
-    "cdk",
-    "service",
-    "ui"
-  ],
-  "scripts": {
-    "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces --if-present",
-    "cdk:synth": "npm run synth --workspace=cdk",
-    "cdk:diff": "npm exec -w cdk -- cdk diff --",
-    "cdk:deploy": "npm run deploy --workspace=cdk"
+  "homepage": "https://github.com/STMARobotics/fmea-app#readme",
+  "bugs": {
+    "url": "https://github.com/STMARobotics/fmea-app/issues"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/STMARobotics/fmea-app.git"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/STMARobotics/fmea-app/issues"
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "dev:ui": "npm run dev -w ui",
+    "build": "npm run build --workspaces",
+    "cdk:synth": "npm run synth --workspace=cdk",
+    "cdk:diff": "npm exec -w cdk -- cdk diff --",
+    "cdk:deploy": "npm run deploy --workspace=cdk"
   },
-  "homepage": "https://github.com/STMARobotics/fmea-app#readme"
+  "workspaces": [
+    "cdk",
+    "service",
+    "ui"
+  ]
 }

@@ -1,0 +1,8 @@
+<h2 mat-dialog-title class="dialog-title">Delete FMEA entry?</h2>
+<mat-dialog-content>
+  <p>Are you sure you want to delete “{{ data.failureMode }}”? This action cannot be undone.</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button class="cancel-button" type="button" (click)="close(false)">Cancel</button>
+  <button class="confirm-delete" type="button" (click)="close(true)">Delete</button>
+</mat-dialog-actions>

@@ -14,6 +14,7 @@ interface FrontendStackProps extends cdk.StackProps {
   domainName: string;
   subdomain: string;
   functionUrl: lambda.FunctionUrl;
+  certificate: acm.ICertificate;
 }
 
 export class FrontendStack extends cdk.Stack {
@@ -25,13 +26,7 @@ export class FrontendStack extends cdk.Stack {
       domainName: props.domainName,
     });
 
-    // 2. ACM Certificate (validated via Route 53 DNS)
-    const certificate = new acm.Certificate(this, 'SiteCertificate', {
-      domainName: props.subdomain,
-      validation: acm.CertificateValidation.fromDns(hostedZone),
-    });
-
-    // 3. Private S3 Bucket for Static Frontend Assets
+    // 2. Private S3 Bucket for Static Frontend Assets
     const siteBucket = new s3.Bucket(this, 'SiteBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
@@ -42,10 +37,10 @@ export class FrontendStack extends cdk.Stack {
     // Extract domain name from Lambda Function URL (strips "https://" and trailing "/")
     const functionUrlDomain = cdk.Fn.select(2, cdk.Fn.split('/', props.functionUrl.url));
 
-    // 4. CloudFront Distribution with S3 OAC & Lambda URL Behavior
+    // 3. CloudFront Distribution with S3 OAC & Lambda URL Behavior
     const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
       domainNames: [props.subdomain],
-      certificate: certificate,
+      certificate: props.certificate,
       defaultRootObject: 'index.html',
 
       // Serve static UI assets from S3
@@ -67,7 +62,7 @@ export class FrontendStack extends cdk.Stack {
       ],
     });
 
-    // 5. Proxy API requests (/api/*) directly to Lambda
+    // 4. Proxy API requests (/api/*) directly to Lambda
     distribution.addBehavior('/api/*', new origins.HttpOrigin(functionUrlDomain), {
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
@@ -75,7 +70,7 @@ export class FrontendStack extends cdk.Stack {
       originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
     });
 
-    // 6. Automatically deploy built UI assets to S3 and invalidate CloudFront
+    // 5. Automatically deploy built UI assets to S3 and invalidate CloudFront
     // Note: Ensure /ui/dist exists or update path to match your UI build directory
     new s3deploy.BucketDeployment(this, 'DeployFrontend', {
       sources: [s3deploy.Source.asset(path.join(__dirname, '../../ui/dist'))],
@@ -84,7 +79,7 @@ export class FrontendStack extends cdk.Stack {
       distributionPaths: ['/*'],
     });
 
-    // 7. Route 53 Alias Record pointing subdomain to CloudFront
+    // 6. Route 53 Alias Record pointing subdomain to CloudFront
     new route53.ARecord(this, 'SiteAliasRecord', {
       zone: hostedZone,
       recordName: props.subdomain,

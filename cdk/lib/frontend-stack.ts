@@ -13,6 +13,7 @@ import * as path from 'path';
 interface FrontendStackProps extends cdk.StackProps {
   domainName: string;
   subdomain: string;
+  hostedZoneId: string;
   functionUrl: lambda.FunctionUrl;
   certificate: acm.ICertificate;
 }
@@ -21,9 +22,10 @@ export class FrontendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: FrontendStackProps) {
     super(scope, id, props);
 
-    // 1. Look up existing Hosted Zone in Route 53
-    const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
-      domainName: props.domainName,
+    // 1. Retreive the existing Hosted Zone from Route 53
+    const hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
+      hostedZoneId: props.hostedZoneId,
+      zoneName: props.domainName,
     });
 
     // 2. Private S3 Bucket for Static Frontend Assets

@@ -6,6 +6,7 @@ import { Construct } from 'constructs';
 interface CertificateStackProps extends cdk.StackProps {
   domainName: string;
   subdomain: string;
+  hostedZoneId: string;
 }
 
 export class CertificateStack extends cdk.Stack {
@@ -14,12 +15,12 @@ export class CertificateStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: CertificateStackProps) {
     super(scope, id, props);
 
-    // Route 53 Hosted Zone lookup (global, works from any region)
-    const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
-      domainName: props.domainName,
+    // Reference the Hosted Zone directly by ID (avoids synth-time API permissions lookup)
+    const hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
+      hostedZoneId: props.hostedZoneId,
+      zoneName: props.domainName,
     });
 
-    // ACM Certificate MUST be in us-east-1 for CloudFront
     this.certificate = new acm.Certificate(this, 'SiteCertificate', {
       domainName: props.subdomain,
       validation: acm.CertificateValidation.fromDns(hostedZone),

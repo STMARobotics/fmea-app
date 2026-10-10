@@ -1,23 +1,30 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
 import { BackendStack } from '../lib/backend-stack';
+import { CertificateStack } from '../lib/certificate-stack';
 import { FrontendStack } from '../lib/frontend-stack';
 
 const app = new cdk.App();
 
-// Environment configuration required for Route 53 lookups
-const env = {
-  account: process.env.CDK_DEFAULT_ACCOUNT,
-  region: process.env.CDK_DEFAULT_REGION || 'us-east-2',
-};
+const account = process.env.CDK_DEFAULT_ACCOUNT;
 
-// 1. Deploy Backend Infrastructure
-const backend = new BackendStack(app, 'AppBackendStack', { env });
-
-// 2. Deploy Frontend Infrastructure
-new FrontendStack(app, 'AppFrontendStack', {
-  env,
+// 1. Certificate stack MUST be in us-east-1 for CloudFront
+const certStack = new CertificateStack(app, 'AppCertificateStack', {
+  env: { account, region: 'us-east-1' },
   domainName: '7028robotics.com',
   subdomain: 'fmea.7028robotics.com',
-  functionUrl: backend.functionUrl,
+});
+
+// 2. Backend stack in us-east-2
+const backendStack = new BackendStack(app, 'AppBackendStack', {
+  env: { account, region: 'us-east-2' },
+});
+
+// 3. Frontend stack in us-east-2, passing the us-east-1 certificate and backend function URL
+new FrontendStack(app, 'AppFrontendStack', {
+  env: { account, region: 'us-east-2' },
+  domainName: '7028robotics.com',
+  subdomain: 'fmea.7028robotics.com',
+  functionUrl: backendStack.functionUrl,
+  certificate: certStack.certificate,
 });

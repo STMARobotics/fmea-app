@@ -27,8 +27,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-    #   - name: Build Monorepo Workspaces
-    #     run: npm run build
+      - name: Build Monorepo Workspaces
+        run: npm run build -w ui
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4

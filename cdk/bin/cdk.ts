@@ -21,12 +21,12 @@ const backendStack = new BackendStack(app, 'AppBackendStack', {
   env: { account, region: 'us-east-2' },
 });
 
-// 3. Frontend stack in us-east-2, passing the us-east-1 certificate and backend HTTP API
+// 3. Frontend stack in us-east-2, passing the us-east-1 certificate and backend Lambda URL
 new FrontendStack(app, 'AppFrontendStack', {
   env: { account, region: 'us-east-2' },
   domainName: prodConfig.domainName,
   subdomain: prodConfig.subdomain,
   hostedZoneId: prodConfig.hostedZoneId,
-  httpApi: backendStack.httpApi,
+  apiFunctionUrl: backendStack.apiFunctionUrl,
   certificate: certStack.certificate,
 });

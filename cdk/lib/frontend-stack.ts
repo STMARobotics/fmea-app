@@ -1,11 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
-import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import { Construct } from 'constructs';
 import * as path from 'path';
@@ -14,7 +14,7 @@ interface FrontendStackProps extends cdk.StackProps {
   domainName: string;
   subdomain: string;
   hostedZoneId: string;
-  httpApi: apigwv2.IHttpApi;
+  apiFunctionUrl: lambda.IFunctionUrl;
   certificate: acm.ICertificate;
 }
 
@@ -36,9 +36,13 @@ export class FrontendStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
-    const apiDomain = cdk.Fn.select(2, cdk.Fn.split('/', props.httpApi.apiEndpoint));
+    const spaRewrite = new cloudfront.Function(this, 'SpaRewrite', {
+      code: cloudfront.FunctionCode.fromInline(
+        "function handler(event) { var request = event.request; if (request.uri !== '/' && request.uri.indexOf('.') === -1) { request.uri = '/index.html'; } return request; }",
+      ),
+    });
 
-    // 3. CloudFront Distribution with S3 OAC & HTTP API behavior
+    // 3. CloudFront Distribution with S3 and Lambda Function URL origins
     const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
       domainNames: [props.subdomain],
       certificate: props.certificate,
@@ -50,26 +54,26 @@ export class FrontendStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
         cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
+        functionAssociations: [
+          {
+            function: spaRewrite,
+            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
       },
 
-      // SPA Client-Side Routing Fallback
-      errorResponses: [
-        {
-          httpStatus: 404,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-          ttl: cdk.Duration.minutes(5),
-        },
-      ],
     });
 
-    // 4. Proxy API requests (/api/*) to API Gateway
-    distribution.addBehavior('/api/*', new origins.HttpOrigin(apiDomain), {
-      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-      originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
-    });
+    distribution.addBehavior(
+      '/api/*',
+      origins.FunctionUrlOrigin.withOriginAccessControl(props.apiFunctionUrl),
+      {
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+      },
+    );
 
     // 5. Automatically deploy built UI assets to S3 and invalidate CloudFront
     // Note: Ensure /ui/dist exists or update path to match your UI build directory

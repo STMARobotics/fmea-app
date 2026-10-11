@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
+import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
@@ -6,7 +7,6 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
@@ -14,7 +14,7 @@ interface FrontendStackProps extends cdk.StackProps {
   domainName: string;
   subdomain: string;
   hostedZoneId: string;
-  functionUrl: lambda.FunctionUrl;
+  httpApi: apigwv2.IHttpApi;
   certificate: acm.ICertificate;
 }
 
@@ -36,10 +36,9 @@ export class FrontendStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
-    // Extract domain name from Lambda Function URL (strips "https://" and trailing "/")
-    const functionUrlDomain = cdk.Fn.select(2, cdk.Fn.split('/', props.functionUrl.url));
+    const apiDomain = cdk.Fn.select(2, cdk.Fn.split('/', props.httpApi.apiEndpoint));
 
-    // 3. CloudFront Distribution with S3 OAC & Lambda URL Behavior
+    // 3. CloudFront Distribution with S3 OAC & HTTP API behavior
     const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
       domainNames: [props.subdomain],
       certificate: props.certificate,
@@ -64,8 +63,8 @@ export class FrontendStack extends cdk.Stack {
       ],
     });
 
-    // 4. Proxy API requests (/api/*) directly to Lambda
-    distribution.addBehavior('/api/*', new origins.HttpOrigin(functionUrlDomain), {
+    // 4. Proxy API requests (/api/*) to API Gateway
+    distribution.addBehavior('/api/*', new origins.HttpOrigin(apiDomain), {
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
       cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,

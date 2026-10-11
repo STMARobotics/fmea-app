@@ -60,7 +60,7 @@ export class BackendStack extends cdk.Stack {
     table.grantWriteData(updateHandler);
     table.grantReadWriteData(deleteHandler);
 
-    this.httpApi = new apigwv2.HttpApi(this, 'SeasonApi');
+    this.httpApi = new apigwv2.HttpApi(this, 'fmea-api');
 
     this.httpApi.addRoutes({
       path: '/api/seasons',

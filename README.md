@@ -2,9 +2,7 @@
 
 ## Season API
 
-CloudFront proxies `/api/*` directly to an IAM-authenticated Lambda Function URL.
-Origin Access Control signs CloudFront's requests, so the Function URL is not public.
-The Lambda router dispatches requests to focused season handlers; API Gateway is not used.
+The backend exposes season operations through API Gateway and focused Lambda handlers:
 
 | Method | Route | Behavior |
 | --- | --- | --- |

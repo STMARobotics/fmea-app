@@ -60,18 +60,7 @@ export class BackendStack extends cdk.Stack {
     table.grantWriteData(updateHandler);
     table.grantReadWriteData(deleteHandler);
 
-    this.httpApi = new apigwv2.HttpApi(this, 'SeasonApi', {
-      corsPreflight: {
-        allowOrigins: ['*'],
-        allowMethods: [
-          apigwv2.CorsHttpMethod.GET,
-          apigwv2.CorsHttpMethod.POST,
-          apigwv2.CorsHttpMethod.PATCH,
-          apigwv2.CorsHttpMethod.DELETE,
-        ],
-        allowHeaders: ['Content-Type'],
-      },
-    });
+    this.httpApi = new apigwv2.HttpApi(this, 'SeasonApi');
 
     this.httpApi.addRoutes({
       path: '/api/seasons',

@@ -22,8 +22,8 @@ export class ActionItemService {
   private readonly fmeaService = inject(FmeaService);
 
   updateActionItem(actionItemId: string, partialActionItem: PartialActionItem): Observable<ActionItem> {
-    return fromFetch<ActionItem>(`http://localhost:3000/api/action-item/${actionItemId}`, {
-      method: 'POST',
+    return fromFetch<ActionItem>(`/api/action-item/${encodeURIComponent(actionItemId)}`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },

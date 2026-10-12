@@ -2,10 +2,10 @@ import { AsyncPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { catchError, combineLatest, firstValueFrom, map, Observable, of, startWith, switchMap } from 'rxjs';
+import { catchError, combineLatest, firstValueFrom, map, Observable, of, startWith, switchMap, take } from 'rxjs';
 import { RatingCheatSheetComponent } from '../rating-cheat-sheet/rating-cheat-sheet.component';
 import { FmeaSelectionService } from '../services/fmea-selection.service';
-import { FmeaEntry, FmeaService, PartialFmeaEntry } from '../services/fmea.service';
+import { FmeaEntry, FmeaService } from '../services/fmea.service';
 import { NavigationHistoryService } from '../services/navigation-history.service';
 import { Subsystem, SubsystemService } from '../services/subsystem.service';
 
@@ -78,7 +78,22 @@ export class FmeaEntryCreatePageComponent {
     this.submissionError = '';
 
     try {
-      const payload: PartialFmeaEntry = { ...formValue, sev: formValue.sev, occ: formValue.occ, det: formValue.det };
+      const [teamId, seasonId] = await firstValueFrom(combineLatest([
+        this.selectedTeamId$,
+        this.selectedSeasonId$,
+      ]).pipe(take(1)));
+      if (!teamId || !seasonId) {
+        this.submissionError = 'Select a team and season before creating an FMEA entry.';
+        return;
+      }
+      const payload = {
+        ...formValue,
+        teamId,
+        seasonId,
+        sev: formValue.sev,
+        occ: formValue.occ,
+        det: formValue.det,
+      };
       const entry: FmeaEntry = await firstValueFrom(this.fmeaService.createFmeaEntry(payload));
       await this.navigationHistory.navigateReplacingCurrent(`/fmea/${entry.id}`);
     } catch (error) {

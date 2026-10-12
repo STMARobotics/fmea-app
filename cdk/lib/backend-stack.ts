@@ -28,6 +28,18 @@ export class BackendStack extends cdk.Stack {
       sortKey: { name: 'gsi1sk', type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.ALL,
     });
+    table.addGlobalSecondaryIndex({
+      indexName: 'GSI2',
+      partitionKey: { name: 'gsi2pk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'gsi2sk', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+    table.addGlobalSecondaryIndex({
+      indexName: 'GSI3',
+      partitionKey: { name: 'gsi3pk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'gsi3sk', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
 
     const createHandler = this.createSeasonFunction(
       'CreateSeasonFunction',
@@ -79,6 +91,41 @@ export class BackendStack extends cdk.Stack {
       'delete-team.handler.ts',
       table,
     );
+    const listSubsystemsHandler = this.createSubsystemFunction(
+      'ListSubsystemsFunction',
+      'list-subsystems.handler.ts',
+      table,
+    );
+    const listFmeaEntriesHandler = this.createFmeaFunction(
+      'ListFmeaEntriesFunction',
+      'list-fmea-entries.handler.ts',
+      table,
+    );
+    const getFmeaEntryHandler = this.createFmeaFunction(
+      'GetFmeaEntryFunction',
+      'get-fmea-entry.handler.ts',
+      table,
+    );
+    const createFmeaEntryHandler = this.createFmeaFunction(
+      'CreateFmeaEntryFunction',
+      'create-fmea-entry.handler.ts',
+      table,
+    );
+    const updateFmeaEntryHandler = this.createFmeaFunction(
+      'UpdateFmeaEntryFunction',
+      'update-fmea-entry.handler.ts',
+      table,
+    );
+    const deleteFmeaEntryHandler = this.createFmeaFunction(
+      'DeleteFmeaEntryFunction',
+      'delete-fmea-entry.handler.ts',
+      table,
+    );
+    const updateActionItemHandler = this.createFmeaFunction(
+      'UpdateActionItemFunction',
+      'update-action-item.handler.ts',
+      table,
+    );
 
     table.grantWriteData(createHandler);
     table.grantReadData(listHandler);
@@ -90,6 +137,13 @@ export class BackendStack extends cdk.Stack {
     table.grantReadData(getTeamHandler);
     table.grantWriteData(updateTeamHandler);
     table.grantWriteData(deleteTeamHandler);
+    table.grantReadData(listSubsystemsHandler);
+    table.grantReadData(listFmeaEntriesHandler);
+    table.grantReadData(getFmeaEntryHandler);
+    table.grantReadWriteData(createFmeaEntryHandler);
+    table.grantReadWriteData(updateFmeaEntryHandler);
+    table.grantReadWriteData(deleteFmeaEntryHandler);
+    table.grantReadWriteData(updateActionItemHandler);
 
     this.httpApi = new apigwv2.HttpApi(this, 'fmea-api');
 
@@ -143,6 +197,41 @@ export class BackendStack extends cdk.Stack {
       methods: [apigwv2.HttpMethod.DELETE],
       integration: new integrations.HttpLambdaIntegration('DeleteTeamIntegration', deleteTeamHandler),
     });
+    this.httpApi.addRoutes({
+      path: '/api/subsystems/{teamId}',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration('ListSubsystemsIntegration', listSubsystemsHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/fmea/{teamId}/{seasonId}',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration('ListFmeaEntriesIntegration', listFmeaEntriesHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/fmea/new',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration('CreateFmeaEntryIntegration', createFmeaEntryHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/fmea/{fmeaId}',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration('GetFmeaEntryIntegration', getFmeaEntryHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/fmea/{fmeaId}',
+      methods: [apigwv2.HttpMethod.PATCH],
+      integration: new integrations.HttpLambdaIntegration('UpdateFmeaEntryIntegration', updateFmeaEntryHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/fmea/{fmeaId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration('DeleteFmeaEntryIntegration', deleteFmeaEntryHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/action-item/{actionItemId}',
+      methods: [apigwv2.HttpMethod.PATCH],
+      integration: new integrations.HttpLambdaIntegration('UpdateActionItemIntegration', updateActionItemHandler),
+    });
 
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: this.httpApi.apiEndpoint,
@@ -173,6 +262,38 @@ export class BackendStack extends cdk.Stack {
     return new nodejs.NodejsFunction(this, id, {
       runtime: lambda.Runtime.NODEJS_24_X,
       entry: path.join(__dirname, `../../service/src/team/${handlerFile}`),
+      handler: 'handler',
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+  }
+
+  private createSubsystemFunction(
+    id: string,
+    handlerFile: string,
+    table: dynamodb.ITable,
+  ): nodejs.NodejsFunction {
+    return new nodejs.NodejsFunction(this, id, {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      entry: path.join(__dirname, `../../service/src/subsystem/${handlerFile}`),
+      handler: 'handler',
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+  }
+
+  private createFmeaFunction(
+    id: string,
+    handlerFile: string,
+    table: dynamodb.ITable,
+  ): nodejs.NodejsFunction {
+    return new nodejs.NodejsFunction(this, id, {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      entry: path.join(__dirname, `../../service/src/fmea/${handlerFile}`),
       handler: 'handler',
       environment: {
         TABLE_NAME: table.tableName,

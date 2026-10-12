@@ -32,3 +32,33 @@ The backend exposes team operations through API Gateway and focused Lambda handl
 Team metadata uses `pk = TEAM#{teamId}` and `sk = METADATA`, with `program`
 (`frc` or `ftc`), numeric `teamNumber`, and `name` attributes. The `GSI1`
 index (`gsi1pk = TEAMS`, `gsi1sk = {teamId}`) supports listing teams.
+
+## Subsystem API
+
+| Method | Route | Behavior |
+| --- | --- | --- |
+| `GET` | `/api/subsystems/{teamId}` | List a team's subsystems |
+
+Subsystem metadata uses `pk = TEAM#{teamId}` and
+`sk = SUBSYSTEM#{subsystemId}`, with `seasonId` and `name` attributes.
+
+## FMEA API
+
+| Method | Route | Behavior |
+| --- | --- | --- |
+| `GET` | `/api/fmea/{teamId}/{seasonId}` | List entries for a team and season |
+| `POST` | `/api/fmea/new` | Create an entry using `teamId`, `seasonId`, `subsystemId`, failure details, and ratings |
+| `GET` | `/api/fmea/{fmeaId}` | Get one entry |
+| `PATCH` | `/api/fmea/{fmeaId}` | Update failure details and ratings |
+| `DELETE` | `/api/fmea/{fmeaId}` | Delete one entry |
+| `PATCH` | `/api/action-item/{actionItemId}` | Update an action item's status |
+
+FMEA entries use `pk = SUBSYSTEM#{subsystemId}` and
+`sk = FMEA#{fmeaId}`. Their `lastUpdated` values are ISO 8601 strings, and
+`actionItems` are stored as the specified list of description, status, and
+`lastUpdated` values. The `GSI2` index (`gsi2pk =
+TEAM#{teamId}#SEASON#{seasonId}`, `gsi2sk = FMEA#{fmeaId}`) supports list
+queries. `GSI3` (`gsi3pk = FMEA#{fmeaId}`, `gsi3sk = METADATA`) supports
+lookup by entry ID. The API derives action item IDs as `{fmeaId}:{index}` for
+the existing status-update UI; action items are not added or removed by that
+workflow.

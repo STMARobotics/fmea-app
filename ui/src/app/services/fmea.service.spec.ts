@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { FmeaEntry, FmeaService, PartialFmeaEntry } from './fmea.service';
+import { CreateFmeaEntryRequest, FmeaEntry, FmeaService, PartialFmeaEntry } from './fmea.service';
 
 describe('FmeaService', () => {
   let service: FmeaService;
@@ -34,7 +34,7 @@ describe('FmeaService', () => {
 
     await expect(firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1'))).resolves.toEqual(entries);
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3000/api/fmea/team-1/season-1',
+      '/api/fmea/team-1/season-1',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
@@ -55,7 +55,7 @@ describe('FmeaService', () => {
 
     await expect(firstValueFrom(service.getFmeaEntry('entry-1'))).resolves.toEqual(entries[0]);
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3000/api/fmea/entry-1',
+      '/api/fmea/entry-1',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
@@ -67,8 +67,10 @@ describe('FmeaService', () => {
       .rejects.toThrow('Unable to load FMEA item (404).');
   });
 
-  it('posts a partial FMEA entry and returns the created entry', async () => {
-    const partialEntry: PartialFmeaEntry = {
+  it('posts a FMEA entry and returns the created entry', async () => {
+    const partialEntry: CreateFmeaEntryRequest = {
+      teamId: 'team-1',
+      seasonId: 'season-1',
       subsystemId: 'subsystem-1',
       failureMode: 'TEST entry: motor failure',
       failureEffect: 'Test-only failure effect',
@@ -86,7 +88,7 @@ describe('FmeaService', () => {
 
     await expect(firstValueFrom(service.createFmeaEntry(partialEntry))).resolves.toEqual(entries[0]);
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3000/api/fmea/new',
+      '/api/fmea/new',
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -100,6 +102,8 @@ describe('FmeaService', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 400 }));
 
     await expect(firstValueFrom(service.createFmeaEntry({
+      teamId: 'team-1',
+      seasonId: 'season-1',
       subsystemId: 'subsystem-1',
       failureMode: 'TEST entry',
       failureEffect: 'Test-only effect',
@@ -117,7 +121,7 @@ describe('FmeaService', () => {
 
     await expect(firstValueFrom(service.deleteFmeaEntry('entry-1'))).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3000/api/fmea/entry-1',
+      '/api/fmea/entry-1',
       expect.objectContaining({
         method: 'DELETE',
         signal: expect.any(AbortSignal),
@@ -135,11 +139,14 @@ describe('FmeaService', () => {
   it('notifies readiness subscribers after successful creates, updates, and deletes', async () => {
     const changes: void[] = [];
     const subscription = service.fmeaEntriesChanged$.subscribe(() => changes.push(undefined));
-    vi.stubGlobal('fetch', vi.fn()
+    const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(entries[0]) })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(entries[0]) })
-      .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('') }));
-    const partialEntry: PartialFmeaEntry = {
+      .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('') });
+    vi.stubGlobal('fetch', fetchMock);
+    const partialEntry: CreateFmeaEntryRequest = {
+      teamId: 'team-1',
+      seasonId: 'season-1',
       subsystemId: 'subsystem-1',
       failureMode: 'Motor failure',
       failureEffect: 'Robot cannot move',
@@ -156,5 +163,15 @@ describe('FmeaService', () => {
     subscription.unsubscribe();
 
     expect(changes).toHaveLength(3);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/fmea/entry-1',
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(partialEntry),
+        signal: expect.any(AbortSignal),
+      }),
+    );
   });
 });

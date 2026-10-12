@@ -14,8 +14,13 @@ export type Subsystem = {
 })
 export class SubsystemService {
   getSubsystemsForTeam(teamId: string): Observable<Subsystem[]> {
-    return fromFetch(`http://localhost:3000/api/subsystems/${teamId}`, {
-      selector: response => response.json(),
+    return fromFetch(`/api/subsystems/${encodeURIComponent(teamId)}`, {
+      selector: response => {
+        if (!response.ok) {
+          throw new Error(`Unable to load subsystems (${response.status}).`);
+        }
+        return response.json();
+      },
     });
   }
 }

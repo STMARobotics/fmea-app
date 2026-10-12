@@ -24,7 +24,7 @@ describe('ActionItemService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('posts a partial action item and returns the updated action item', async () => {
+  it('patches a partial action item and returns the updated action item', async () => {
     const update: PartialActionItem = {
       description: actionItem.description,
       status: 'complete',
@@ -38,9 +38,9 @@ describe('ActionItemService', () => {
 
     await expect(firstValueFrom(service.updateActionItem('action-1', update))).resolves.toEqual(actionItem);
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3000/api/action-item/action-1',
+      '/api/action-item/action-1',
       expect.objectContaining({
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(update),
         signal: expect.any(AbortSignal),

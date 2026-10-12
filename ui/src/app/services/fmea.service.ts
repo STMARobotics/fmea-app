@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { map, Observable, Subject, tap } from "rxjs";
+import { Observable, Subject, tap } from "rxjs";
 import { fromFetch } from "rxjs/fetch";
 
 export type FmeaEntry = {
@@ -42,6 +42,11 @@ export type PartialFmeaEntry = {
   det: number
 };
 
+export type CreateFmeaEntryRequest = PartialFmeaEntry & {
+  teamId: string,
+  seasonId: string
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -54,7 +59,7 @@ export class FmeaService {
   }
 
   getFmeaEntriesForTeam(teamId: string, seasonId: string): Observable<FmeaEntry[]> {
-    return fromFetch(`http://localhost:3000/api/fmea/${teamId}/${seasonId}`, {
+    return fromFetch(`/api/fmea/${encodeURIComponent(teamId)}/${encodeURIComponent(seasonId)}`, {
       selector: response => {
         if (!response.ok) {
           throw new Error(`Unable to load FMEA items (${response.status}).`);
@@ -65,7 +70,7 @@ export class FmeaService {
   }
 
   getFmeaEntry(fmeaEntryId: string): Observable<FmeaEntry> {
-    return fromFetch(`http://localhost:3000/api/fmea/${fmeaEntryId}`, {
+    return fromFetch(`/api/fmea/${encodeURIComponent(fmeaEntryId)}`, {
       selector: response => {
         if (!response.ok) {
           throw new Error(`Unable to load FMEA item (${response.status}).`);
@@ -75,13 +80,13 @@ export class FmeaService {
     });
   }
 
-  createFmeaEntry(partialFmeaEntry: PartialFmeaEntry): Observable<FmeaEntry> {
-    return fromFetch('http://localhost:3000/api/fmea/new', {
+  createFmeaEntry(request: CreateFmeaEntryRequest): Observable<FmeaEntry> {
+    return fromFetch('/api/fmea/new', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(partialFmeaEntry),
+      body: JSON.stringify(request),
       selector: response => {
         if (!response.ok) {
           throw new Error(`Unable to create FMEA item (${response.status}).`);
@@ -92,8 +97,8 @@ export class FmeaService {
   }
 
   updateFmeaEntry(fmeaEntryId: string, partialFmeaEntry: PartialFmeaEntry): Observable<FmeaEntry> {
-    return fromFetch(`http://localhost:3000/api/fmea/${fmeaEntryId}`, {
-      method: 'POST',
+    return fromFetch(`/api/fmea/${encodeURIComponent(fmeaEntryId)}`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'
       },
@@ -108,7 +113,7 @@ export class FmeaService {
   }
 
   deleteFmeaEntry(fmeaEntryId: string): Observable<void> {
-    return fromFetch(`http://localhost:3000/api/fmea/${fmeaEntryId}`, {
+    return fromFetch(`/api/fmea/${encodeURIComponent(fmeaEntryId)}`, {
       method: 'DELETE',
       selector: response => {
         if (!response.ok) {

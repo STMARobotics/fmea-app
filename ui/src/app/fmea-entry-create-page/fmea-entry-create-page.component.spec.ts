@@ -79,6 +79,8 @@ describe('FmeaEntryCreatePageComponent', () => {
     await component.onSubmit();
 
     expect(createFmeaEntry).toHaveBeenCalledWith({
+      teamId: 'team-1',
+      seasonId: 'season-1',
       subsystemId: 'subsystem-1',
       failureMode: 'Motor failure',
       failureEffect: 'Robot cannot move',

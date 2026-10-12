@@ -21,13 +21,20 @@ describe('SubsystemService', () => {
       seasonId: 'season-1',
       name: 'Drive train',
     }];
-    const fetchMock = vi.fn().mockResolvedValue({ json: () => Promise.resolve(subsystems) });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(subsystems) });
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(firstValueFrom(service.getSubsystemsForTeam('team-1'))).resolves.toEqual(subsystems);
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3000/api/subsystems/team-1',
+      '/api/subsystems/team-1',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+  });
+
+  it('reports an HTTP error when subsystems cannot be loaded', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+
+    await expect(firstValueFrom(service.getSubsystemsForTeam('team-1')))
+      .rejects.toThrow('Unable to load subsystems (503).');
   });
 });

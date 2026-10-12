@@ -54,12 +54,42 @@ export class BackendStack extends cdk.Stack {
       'delete-season.handler.ts',
       table,
     );
+    const createTeamHandler = this.createTeamFunction(
+      'CreateTeamFunction',
+      'create-team.handler.ts',
+      table,
+    );
+    const listTeamsHandler = this.createTeamFunction(
+      'ListTeamsFunction',
+      'list-teams.handler.ts',
+      table,
+    );
+    const getTeamHandler = this.createTeamFunction(
+      'GetTeamFunction',
+      'get-team.handler.ts',
+      table,
+    );
+    const updateTeamHandler = this.createTeamFunction(
+      'UpdateTeamFunction',
+      'update-team.handler.ts',
+      table,
+    );
+    const deleteTeamHandler = this.createTeamFunction(
+      'DeleteTeamFunction',
+      'delete-team.handler.ts',
+      table,
+    );
 
     table.grantWriteData(createHandler);
     table.grantReadData(listHandler);
     table.grantReadData(getHandler);
     table.grantWriteData(updateHandler);
     table.grantReadWriteData(deleteHandler);
+    table.grantWriteData(createTeamHandler);
+    table.grantReadData(listTeamsHandler);
+    table.grantReadData(getTeamHandler);
+    table.grantWriteData(updateTeamHandler);
+    table.grantWriteData(deleteTeamHandler);
 
     this.httpApi = new apigwv2.HttpApi(this, 'fmea-api');
 
@@ -88,6 +118,31 @@ export class BackendStack extends cdk.Stack {
       methods: [apigwv2.HttpMethod.DELETE],
       integration: new integrations.HttpLambdaIntegration('DeleteSeasonIntegration', deleteHandler),
     });
+    this.httpApi.addRoutes({
+      path: '/api/teams',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration('ListTeamsIntegration', listTeamsHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/teams',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration('CreateTeamIntegration', createTeamHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/teams/{teamId}',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration('GetTeamIntegration', getTeamHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/teams/{teamId}',
+      methods: [apigwv2.HttpMethod.PATCH],
+      integration: new integrations.HttpLambdaIntegration('UpdateTeamIntegration', updateTeamHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/teams/{teamId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration('DeleteTeamIntegration', deleteTeamHandler),
+    });
 
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: this.httpApi.apiEndpoint,
@@ -102,6 +157,22 @@ export class BackendStack extends cdk.Stack {
     return new nodejs.NodejsFunction(this, id, {
       runtime: lambda.Runtime.NODEJS_24_X,
       entry: path.join(__dirname, `../../service/src/season/${handlerFile}`),
+      handler: 'handler',
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+  }
+
+  private createTeamFunction(
+    id: string,
+    handlerFile: string,
+    table: dynamodb.ITable,
+  ): nodejs.NodejsFunction {
+    return new nodejs.NodejsFunction(this, id, {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      entry: path.join(__dirname, `../../service/src/team/${handlerFile}`),
       handler: 'handler',
       environment: {
         TABLE_NAME: table.tableName,

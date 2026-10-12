@@ -39,6 +39,22 @@ export class FrontendStack extends cdk.Stack {
     const apiDomain = cdk.Fn.select(2, cdk.Fn.split('/', props.httpApi.apiEndpoint));
 
     // 3. CloudFront Distribution with S3 OAC & HTTP API behavior
+    const spaRoutingFunction = new cloudfront.Function(this, 'SpaRoutingFunction', {
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var uri = request.uri;
+  var lastSegment = uri.substring(uri.lastIndexOf('/') + 1);
+
+  if (uri === '/' || lastSegment.indexOf('.') === -1) {
+    request.uri = '/index.html';
+  }
+
+  return request;
+}`),
+    });
+
     const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
       domainNames: [props.subdomain],
       certificate: props.certificate,
@@ -50,17 +66,13 @@ export class FrontendStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
         cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
+        functionAssociations: [
+          {
+            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+            function: spaRoutingFunction,
+          },
+        ],
       },
-
-      // SPA Client-Side Routing Fallback
-      errorResponses: [
-        {
-          httpStatus: 404,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-          ttl: cdk.Duration.minutes(5),
-        },
-      ],
     });
 
     // 4. Proxy API requests (/api/*) to API Gateway

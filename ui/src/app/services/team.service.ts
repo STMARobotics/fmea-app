@@ -14,7 +14,7 @@ export class TeamService {
       map((data: any[]) => data.map(team => ({
         id: team.id,
         num: team.teamNumber,
-        name: team.teamName,
+        name: team.name,
         program: team.program
       })))
     );

@@ -7,8 +7,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 
 export const dynamoDB = new DynamoDBClient({});
-export const fmeaTeamSeasonIndexName = 'GSI2';
-export const fmeaIdIndexName = 'GSI3';
+export const fmeaIdIndexName = 'GSI2';
 
 export type ActionItemStatus = 'not_started' | 'in_progress' | 'assembly_note' | 'complete';
 export type HttpEvent = {
@@ -206,10 +205,8 @@ export const fmeaItem = (
   sk: { S: `FMEA#${id}` },
   teamId: { S: teamId },
   seasonId: { S: seasonId },
-  gsi2pk: { S: `TEAM#${teamId}#SEASON#${seasonId}` },
-  gsi2sk: { S: `FMEA#${id}` },
-  gsi3pk: { S: `FMEA#${id}` },
-  gsi3sk: { S: 'METADATA' },
+  gsi2pk: { S: `FMEA#${id}` },
+  gsi2sk: { S: 'METADATA' },
   failureMode: { S: request.failureMode.trim() },
   failureEffect: { S: request.failureEffect.trim() },
   sev: { N: String(request.sev) },
@@ -254,7 +251,7 @@ export const findFmeaById = async (
   const result = await dynamoDB.send(new QueryCommand({
     TableName: getTableName(),
     IndexName: fmeaIdIndexName,
-    KeyConditionExpression: 'gsi3pk = :partition AND gsi3sk = :metadata',
+    KeyConditionExpression: 'gsi2pk = :partition AND gsi2sk = :metadata',
     ExpressionAttributeValues: {
       ':partition': { S: `FMEA#${id}` },
       ':metadata': { S: 'METADATA' },

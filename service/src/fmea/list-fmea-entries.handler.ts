@@ -4,7 +4,6 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import {
   dynamoDB,
-  fmeaTeamSeasonIndexName,
   formatFmeaEntry,
   getPathParameter,
   getTableName,
@@ -22,20 +21,44 @@ export const handler = async (event: HttpEvent) => {
 
   try {
     const items: Record<string, AttributeValue>[] = [];
-    let exclusiveStartKey: Record<string, AttributeValue> | undefined;
+    let subsystemStartKey: Record<string, AttributeValue> | undefined;
     do {
-      const result = await dynamoDB.send(new QueryCommand({
+      const subsystemResult = await dynamoDB.send(new QueryCommand({
         TableName: getTableName(),
-        IndexName: fmeaTeamSeasonIndexName,
-        KeyConditionExpression: 'gsi2pk = :partition',
+        KeyConditionExpression: 'pk = :team AND begins_with(sk, :subsystemPrefix)',
         ExpressionAttributeValues: {
-          ':partition': { S: `TEAM#${teamId}#SEASON#${seasonId}` },
+          ':team': { S: `TEAM#${teamId}` },
+          ':subsystemPrefix': { S: 'SUBSYSTEM#' },
         },
-        ExclusiveStartKey: exclusiveStartKey,
+        ConsistentRead: true,
+        ExclusiveStartKey: subsystemStartKey,
       }));
-      items.push(...(result.Items ?? []));
-      exclusiveStartKey = result.LastEvaluatedKey;
-    } while (exclusiveStartKey);
+      for (const subsystemItem of subsystemResult.Items ?? []) {
+        const subsystemId = subsystemItem.sk?.S?.startsWith('SUBSYSTEM#')
+          ? subsystemItem.sk.S.slice('SUBSYSTEM#'.length)
+          : null;
+        if (!subsystemId) {
+          throw new Error('DynamoDB returned a malformed subsystem key.');
+        }
+
+        let fmeaStartKey: Record<string, AttributeValue> | undefined;
+        do {
+          const fmeaResult = await dynamoDB.send(new QueryCommand({
+            TableName: getTableName(),
+            KeyConditionExpression: 'pk = :subsystem AND begins_with(sk, :fmeaPrefix)',
+            ExpressionAttributeValues: {
+              ':subsystem': { S: `SUBSYSTEM#${subsystemId}` },
+              ':fmeaPrefix': { S: 'FMEA#' },
+            },
+            ConsistentRead: true,
+            ExclusiveStartKey: fmeaStartKey,
+          }));
+          items.push(...(fmeaResult.Items ?? []).filter(item => item.seasonId?.S === seasonId));
+          fmeaStartKey = fmeaResult.LastEvaluatedKey;
+        } while (fmeaStartKey);
+      }
+      subsystemStartKey = subsystemResult.LastEvaluatedKey;
+    } while (subsystemStartKey);
 
     const entries = await Promise.all(items.map(async item =>
       formatFmeaEntry(readFmea(item)),

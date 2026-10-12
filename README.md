@@ -56,9 +56,8 @@ Subsystem metadata uses `pk = TEAM#{teamId}` and
 FMEA entries use `pk = SUBSYSTEM#{subsystemId}` and
 `sk = FMEA#{fmeaId}`. Their `lastUpdated` values are ISO 8601 strings, and
 `actionItems` are stored as the specified list of description, status, and
-`lastUpdated` values. The `GSI2` index (`gsi2pk =
-TEAM#{teamId}#SEASON#{seasonId}`, `gsi2sk = FMEA#{fmeaId}`) supports list
-queries. `GSI3` (`gsi3pk = FMEA#{fmeaId}`, `gsi3sk = METADATA`) supports
-lookup by entry ID. The API derives action item IDs as `{fmeaId}:{index}` for
-the existing status-update UI; action items are not added or removed by that
-workflow.
+`lastUpdated` values. The API lists entries by querying the team's subsystem
+records and then each subsystem's FMEA partition, filtering by season.
+`GSI2` (`gsi2pk = FMEA#{fmeaId}`, `gsi2sk = METADATA`) supports lookup by entry
+ID. The API derives action item IDs as `{fmeaId}:{index}` for the existing
+status-update UI; action items are not added or removed by that workflow.

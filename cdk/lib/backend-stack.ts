@@ -34,12 +34,6 @@ export class BackendStack extends cdk.Stack {
       sortKey: { name: 'gsi2sk', type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.ALL,
     });
-    table.addGlobalSecondaryIndex({
-      indexName: 'GSI3',
-      partitionKey: { name: 'gsi3pk', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'gsi3sk', type: dynamodb.AttributeType.STRING },
-      projectionType: dynamodb.ProjectionType.ALL,
-    });
 
     const createHandler = this.createSeasonFunction(
       'CreateSeasonFunction',

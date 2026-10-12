@@ -48,6 +48,35 @@ describe('ActionItemService', () => {
     );
   });
 
+  it('posts a new action item and returns the created action item', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(actionItem),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(firstValueFrom(service.createActionItem('entry-1', {
+      description: actionItem.description,
+    }))).resolves.toEqual(actionItem);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/fmea/entry-1/action-items',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: actionItem.description }),
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('reports an HTTP error when an action item cannot be created', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+
+    await expect(firstValueFrom(service.createActionItem('entry-1', {
+      description: actionItem.description,
+    }))).rejects.toThrow('Unable to create action item (503).');
+  });
+
   it('reports an HTTP error when an action item cannot be updated', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
 

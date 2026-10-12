@@ -15,11 +15,29 @@ export type ActionItem = {
 
 export type PartialActionItem = Pick<ActionItem, 'description' | 'status' | 'fmeaEntryId'>;
 
+export type CreateActionItemRequest = Pick<ActionItem, 'description'>;
+
 @Injectable({
   providedIn: 'root'
 })
 export class ActionItemService {
   private readonly fmeaService = inject(FmeaService);
+
+  createActionItem(fmeaEntryId: string, request: CreateActionItemRequest): Observable<ActionItem> {
+    return fromFetch<ActionItem>(`/api/fmea/${encodeURIComponent(fmeaEntryId)}/action-items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+      selector: response => {
+        if (!response.ok) {
+          throw new Error(`Unable to create action item (${response.status}).`);
+        }
+        return response.json();
+      },
+    }).pipe(tap(() => this.fmeaService.notifyFmeaEntriesChanged()));
+  }
 
   updateActionItem(actionItemId: string, partialActionItem: PartialActionItem): Observable<ActionItem> {
     return fromFetch<ActionItem>(`/api/action-item/${encodeURIComponent(actionItemId)}`, {

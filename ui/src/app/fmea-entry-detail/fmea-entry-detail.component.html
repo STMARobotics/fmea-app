@@ -112,10 +112,40 @@
           </div>
 
           <section class="detail-section">
-            <h2>Action items <span class="count">{{ entry.actionItems.length }}</span></h2>
-            @if (entry.actionItems.length > 0) {
+            <div class="entry-actions page-nav">
+              <h2>Action items <span class="count">{{ currentEntry(entry).actionItems.length }}</span></h2>
+              <button class="action-item-toggle" type="button" (click)="toggleActionItemForm()">
+                {{ addingActionItem ? 'Cancel' : 'Add action item' }}
+              </button>
+            </div>
+            @if (addingActionItem) {
+              <div class="entry-actions action-item-form">
+                <label class="field">
+                  <span>Action item description</span>
+                  <textarea
+                    [value]="newActionItemDescription"
+                    (input)="setActionItemDescription($event)"
+                    rows="2"
+                    required
+                  ></textarea>
+                </label>
+                <div class="entry-actions">
+                  <button
+                    type="button"
+                    [disabled]="creatingActionItem || !newActionItemDescription.trim()"
+                    (click)="createActionItem(entry)"
+                  >
+                    {{ creatingActionItem ? 'Creating…' : 'Create action item' }}
+                  </button>
+                </div>
+              </div>
+            }
+            @if (actionItemError) {
+              <p class="message error" role="alert">{{ actionItemError }}</p>
+            }
+            @if (currentEntry(entry).actionItems.length > 0) {
               <ul class="action-items">
-                @for (actionItem of entry.actionItems; track actionItem.id) {
+                @for (actionItem of currentEntry(entry).actionItems; track actionItem.id) {
                   <li>
                     <div>
                       <p>{{ actionItem.description }}</p>

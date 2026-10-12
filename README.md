@@ -52,6 +52,7 @@ Subsystem metadata uses `pk = TEAM#{teamId}` and
 | `GET` | `/api/fmea/{fmeaId}` | Get one entry |
 | `PATCH` | `/api/fmea/{fmeaId}` | Update failure details and ratings |
 | `DELETE` | `/api/fmea/{fmeaId}` | Delete one entry |
+| `POST` | `/api/fmea/{fmeaId}/action-items` | Add an action item using a non-empty `description` |
 | `PATCH` | `/api/action-item/{actionItemId}` | Update an action item's status |
 
 FMEA entries use `pk = SUBSYSTEM#{subsystemId}` and
@@ -61,4 +62,4 @@ FMEA entries use `pk = SUBSYSTEM#{subsystemId}` and
 records and then each subsystem's FMEA partition, filtering by season.
 `GSI2` (`gsi2pk = FMEA#{fmeaId}`, `gsi2sk = METADATA`) supports lookup by entry
 ID. The API derives action item IDs as `{fmeaId}:{index}` for the existing
-status-update UI; action items are not added or removed by that workflow.
+status-update UI. Newly created action items start with the `not_started` status.

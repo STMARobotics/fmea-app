@@ -125,6 +125,11 @@ export class BackendStack extends cdk.Stack {
       'update-action-item.handler.ts',
       table,
     );
+    const createActionItemHandler = this.createFmeaFunction(
+      'CreateActionItemFunction',
+      'create-action-item.handler.ts',
+      table,
+    );
 
     table.grantWriteData(createHandler);
     table.grantReadData(listHandler);
@@ -144,6 +149,7 @@ export class BackendStack extends cdk.Stack {
     table.grantReadWriteData(updateFmeaEntryHandler);
     table.grantReadWriteData(deleteFmeaEntryHandler);
     table.grantReadWriteData(updateActionItemHandler);
+    table.grantReadWriteData(createActionItemHandler);
 
     this.httpApi = new apigwv2.HttpApi(this, 'fmea-api');
 
@@ -236,6 +242,11 @@ export class BackendStack extends cdk.Stack {
       path: '/api/action-item/{actionItemId}',
       methods: [apigwv2.HttpMethod.PATCH],
       integration: new integrations.HttpLambdaIntegration('UpdateActionItemIntegration', updateActionItemHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/fmea/{fmeaId}/action-items',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration('CreateActionItemIntegration', createActionItemHandler),
     });
 
     new cdk.CfnOutput(this, 'ApiUrl', {

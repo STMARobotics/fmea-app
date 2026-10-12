@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { ActionItemService } from '../services/action-item.service';
 import { FmeaEntry, FmeaService } from '../services/fmea.service';
 import { NavigationHistoryService } from '../services/navigation-history.service';
 import { FmeaEntryDetailComponent } from './fmea-entry-detail.component';
@@ -15,6 +16,15 @@ describe('FmeaEntryDetailComponent', () => {
     getFmeaEntry: vi.fn(() => of(entry)),
     updateFmeaEntry: vi.fn(() => of(entry)),
     deleteFmeaEntry: vi.fn(() => of(undefined)),
+  };
+  const actionItemServiceMock = {
+    createActionItem: vi.fn(() => of({
+      id: 'entry-1:1',
+      description: 'Add temperature monitoring.',
+      status: 'not_started' as const,
+      fmeaEntryId: 'entry-1',
+      lastUpdatedAt: new Date('2026-10-11'),
+    })),
   };
   const routerMock = {
     navigate: vi.fn(() => Promise.resolve(true)),
@@ -57,6 +67,7 @@ describe('FmeaEntryDetailComponent', () => {
           useValue: routeMock,
         },
         { provide: FmeaService, useValue: fmeaServiceMock },
+        { provide: ActionItemService, useValue: actionItemServiceMock },
         { provide: Router, useValue: routerMock },
         { provide: MatDialog, useValue: dialogMock },
         { provide: NavigationHistoryService, useValue: navigationHistoryMock },
@@ -92,6 +103,47 @@ describe('FmeaEntryDetailComponent', () => {
     backButton.click();
 
     expect(navigationHistoryMock.navigateBack).toHaveBeenCalledWith('/fmea');
+  });
+
+  it('creates an action item and adds it to the list', async () => {
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.action-item-toggle')?.click();
+    fixture.detectChanges();
+
+    const description = element.querySelector<HTMLTextAreaElement>('.action-item-form textarea')!;
+    description.value = '  Add temperature monitoring.  ';
+    description.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('.action-item-form button')?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(actionItemServiceMock.createActionItem).toHaveBeenCalledWith('entry-1', {
+      description: 'Add temperature monitoring.',
+    });
+    expect(element.textContent).toContain('Add temperature monitoring.');
+    expect(element.querySelector('.count')?.textContent).toBe('2');
+    expect(element.querySelector('.action-item-form')).toBeNull();
+  });
+
+  it('shows an error when an action item cannot be created', async () => {
+    actionItemServiceMock.createActionItem.mockReturnValue(
+      throwError(() => new Error('Unable to create action item (503).')),
+    );
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.action-item-toggle')?.click();
+    fixture.detectChanges();
+    const description = element.querySelector<HTMLTextAreaElement>('.action-item-form textarea')!;
+    description.value = 'Add temperature monitoring.';
+    description.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('.action-item-form button')?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain(
+      'Unable to create action item (503).',
+    );
   });
 
   it.each([

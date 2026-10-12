@@ -6,6 +6,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { catchError, distinctUntilChanged, firstValueFrom, map, Observable, of, startWith, switchMap } from 'rxjs';
 import { RatingCheatSheetComponent } from '../rating-cheat-sheet/rating-cheat-sheet.component';
+import { ActionItemService } from '../services/action-item.service';
 import { FmeaEntry, FmeaService, PartialFmeaEntry } from '../services/fmea.service';
 import { NavigationHistoryService } from '../services/navigation-history.service';
 import { DeleteFmeaEntryDialogComponent } from './delete-fmea-entry-dialog.component';
@@ -27,6 +28,7 @@ export class FmeaEntryDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
+  private readonly actionItemService = inject(ActionItemService);
   private readonly fmeaService = inject(FmeaService);
   private readonly navigationHistory = inject(NavigationHistoryService);
 
@@ -45,6 +47,10 @@ export class FmeaEntryDetailComponent {
   confirmingDelete = false;
   deleting = false;
   submissionError = '';
+  addingActionItem = false;
+  creatingActionItem = false;
+  newActionItemDescription = '';
+  actionItemError = '';
   private updatedEntry: FmeaEntry | null = null;
 
   readonly detailState$: Observable<DetailState> = this.route.paramMap.pipe(
@@ -95,6 +101,43 @@ export class FmeaEntryDetailComponent {
 
   currentEntry(entry: FmeaEntry): FmeaEntry {
     return this.updatedEntry?.id === entry.id ? this.updatedEntry : entry;
+  }
+
+  toggleActionItemForm(): void {
+    this.addingActionItem = !this.addingActionItem;
+    this.newActionItemDescription = '';
+    this.actionItemError = '';
+  }
+
+  setActionItemDescription(event: Event): void {
+    this.newActionItemDescription = (event.target as HTMLTextAreaElement).value;
+  }
+
+  async createActionItem(entry: FmeaEntry): Promise<void> {
+    const description = this.newActionItemDescription.trim();
+    if (!description || this.creatingActionItem) {
+      return;
+    }
+
+    this.creatingActionItem = true;
+    this.actionItemError = '';
+    try {
+      const actionItem = await firstValueFrom(
+        this.actionItemService.createActionItem(entry.id, { description }),
+      );
+      const current = this.currentEntry(entry);
+      this.updatedEntry = {
+        ...current,
+        actionItems: [...current.actionItems, actionItem],
+      };
+      this.addingActionItem = false;
+      this.newActionItemDescription = '';
+    } catch (error) {
+      this.actionItemError = error instanceof Error ? error.message : 'Unable to create action item.';
+    } finally {
+      this.creatingActionItem = false;
+      this.changeDetectorRef.markForCheck();
+    }
   }
 
   goBack(): void {

@@ -8,17 +8,13 @@ export type Season = {
   name: string
 };
 
-const apiBaseUrl = window.location.hostname === 'localhost'
-  ? 'http://localhost:3000'
-  : '';
-
 @Injectable({
   providedIn: 'root'
 })
 export class SeasonService {
 
   getAllSeasons(): Observable<Season[]> {
-    return fromFetch(`${apiBaseUrl}/api/seasons`, {
+    return fromFetch('/api/seasons', {
       selector: response => {
         if (!response.ok) {
           throw new Error(`Unable to load seasons (${response.status}).`);
@@ -29,7 +25,7 @@ export class SeasonService {
   }
 
   getSeason(seasonId: string): Observable<Season> {
-    return fromFetch(`${apiBaseUrl}/api/seasons/${encodeURIComponent(seasonId)}`, {
+    return fromFetch(`/api/seasons/${encodeURIComponent(seasonId)}`, {
       selector: response => {
         if (!response.ok) {
           throw new Error(`Unable to load season (${response.status}).`);
@@ -40,7 +36,7 @@ export class SeasonService {
   }
 
   createSeason(season: Pick<Season, 'program' | 'name'>): Observable<Season> {
-    return fromFetch(`${apiBaseUrl}/api/seasons`, {
+    return fromFetch('/api/seasons', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(season),
@@ -57,7 +53,7 @@ export class SeasonService {
     seasonId: string,
     updates: Partial<Pick<Season, 'program' | 'name'>>
   ): Observable<Season> {
-    return fromFetch(`${apiBaseUrl}/api/seasons/${encodeURIComponent(seasonId)}`, {
+    return fromFetch(`/api/seasons/${encodeURIComponent(seasonId)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
@@ -71,7 +67,7 @@ export class SeasonService {
   }
 
   deleteSeason(seasonId: string): Observable<void> {
-    return fromFetch(`${apiBaseUrl}/api/seasons/${encodeURIComponent(seasonId)}`, {
+    return fromFetch(`/api/seasons/${encodeURIComponent(seasonId)}`, {
       method: 'DELETE',
       selector: response => {
         if (!response.ok) {

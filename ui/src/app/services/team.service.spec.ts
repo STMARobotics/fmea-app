@@ -24,5 +24,6 @@ describe('TeamService', () => {
     await expect(firstValueFrom(service.getAllTeams())).resolves.toEqual([
       { id: 'team-1', num: 123, name: 'Robotics', program: 'ftc' },
     ]);
+    expect(fetch).toHaveBeenCalledWith('/api/teams', expect.any(Object));
   });
 });

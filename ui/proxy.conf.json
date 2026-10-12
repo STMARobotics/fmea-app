@@ -1,0 +1,7 @@
+{
+  "/api": {
+    "target": "https://fmea.7028robotics.com",
+    "secure": true,
+    "changeOrigin": true
+  }
+}

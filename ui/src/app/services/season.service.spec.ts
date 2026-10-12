@@ -38,7 +38,7 @@ describe('SeasonService', () => {
       program: season.program,
       name: season.name,
     }))).resolves.toEqual(season);
-    expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/seasons', expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith('/api/seasons', expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({ program: 'frc', name: 'Reefscape' }),
     }));
@@ -52,7 +52,7 @@ describe('SeasonService', () => {
     }));
 
     await expect(firstValueFrom(service.getSeason('season-1'))).resolves.toEqual(season);
-    expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/seasons/season-1', expect.any(Object));
+    expect(fetch).toHaveBeenCalledWith('/api/seasons/season-1', expect.any(Object));
   });
 
   it('updates a season through the API', async () => {
@@ -66,7 +66,7 @@ describe('SeasonService', () => {
       name: 'Reefscape',
     }))).resolves.toEqual(season);
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/seasons/season-1',
+      '/api/seasons/season-1',
       expect.objectContaining({
         method: 'PATCH',
         body: JSON.stringify({ name: 'Reefscape' }),
@@ -82,7 +82,7 @@ describe('SeasonService', () => {
 
     await expect(firstValueFrom(service.deleteSeason('season-1'))).resolves.toBeUndefined();
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:3000/api/seasons/season-1',
+      '/api/seasons/season-1',
       expect.objectContaining({ method: 'DELETE' })
     );
   });

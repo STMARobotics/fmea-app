@@ -8,7 +8,7 @@ import { fromFetch } from "rxjs/fetch";
 export class TeamService {
 
   getAllTeams(): Observable<{ id: string, num: number, name: string, program: 'ftc' | 'frc' }[]> {
-    return fromFetch('http://localhost:3000/api/teams', {
+    return fromFetch('/api/teams', {
       selector: response => response.json()
     }).pipe(
       map((data: any[]) => data.map(team => ({

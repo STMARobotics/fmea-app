@@ -38,6 +38,7 @@ index (`gsi1pk = TEAMS`, `gsi1sk = {teamId}`) supports listing teams.
 | Method | Route | Behavior |
 | --- | --- | --- |
 | `GET` | `/api/subsystems/{teamId}` | List a team's subsystems |
+| `POST` | `/api/subsystems/{teamId}` | Create a subsystem with a JSON body containing `seasonId` and non-empty `name` |
 
 Subsystem metadata uses `pk = TEAM#{teamId}` and
 `sk = SUBSYSTEM#{subsystemId}`, with `seasonId` and `name` attributes.

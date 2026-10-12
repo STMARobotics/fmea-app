@@ -9,6 +9,11 @@ export type Subsystem = {
   name: string;
 };
 
+export type CreateSubsystemRequest = {
+  seasonId: string;
+  name: string;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -18,6 +23,22 @@ export class SubsystemService {
       selector: response => {
         if (!response.ok) {
           throw new Error(`Unable to load subsystems (${response.status}).`);
+        }
+        return response.json();
+      },
+    });
+  }
+
+  createSubsystem(teamId: string, request: CreateSubsystemRequest): Observable<Subsystem> {
+    return fromFetch(`/api/subsystems/${encodeURIComponent(teamId)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+      selector: response => {
+        if (!response.ok) {
+          throw new Error(`Unable to create subsystem (${response.status}).`);
         }
         return response.json();
       },

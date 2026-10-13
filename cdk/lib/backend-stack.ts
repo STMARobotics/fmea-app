@@ -15,7 +15,6 @@ export class BackendStack extends cdk.Stack {
 
     // 1. DynamoDB Table
     const table = new dynamodb.Table(this, 'AppDataTable', {
-      tableName: 'fmea',
       partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,

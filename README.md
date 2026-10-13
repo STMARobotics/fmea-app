@@ -1,5 +1,43 @@
 # fmea-app
 
+## Local development
+
+The Angular development server can proxy API requests to a local Node server,
+which invokes the same handlers used by the deployed API. The local API uses
+AWS credentials and the DynamoDB table specified by `TABLE_NAME`; it can modify
+that table, so use a development table/account if possible.
+
+Install dependencies from the repository root:
+
+```bash
+npm install
+```
+
+Create a `service/.env` file, and add:
+```
+TABLE_NAME=<dynamotablename>
+```
+
+Log in to AWS IAM access portal, and copy the commands to set your AWS credentials into the environment. Run those commands.
+
+```bash
+export AWS_ACCESS_KEY_ID="<ACCESS_KEY>"
+export AWS_SECRET_ACCESS_KEY="<SECRET_KEY>"
+export AWS_SESSION_TOKEN="<SESSION_TOKEN>"
+```
+Note: These credentials expire every 4 hours. When they expire, just repeat the process with new credentials.
+
+Start both the UI and API concurrently by running
+```bash
+npm run dev
+```
+
+Open `http://localhost:4200`. The UI proxy sends `/api` requests to
+`http://127.0.0.1:3000`. The API binds to localhost by default; override
+`API_PORT` or `API_HOST` if needed. You can find the deployed table name in the
+AWS CloudFormation stack `fmea-backend` in `us-east-2`, or use a separate
+development table with the same `pk`/`sk` keys and `GSI1`/`GSI2` indexes.
+
 ## Season API
 
 The backend exposes season operations through API Gateway and focused Lambda handlers:

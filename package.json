@@ -17,6 +17,8 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run test --workspaces --if-present",
+    "dev": "concurrently \"npm run dev -w service\" \"npm run dev -w ui\"",
+    "dev:api": "npm run dev --workspace=service",
     "dev:ui": "npm run dev -w ui",
     "build": "npm run build --workspaces",
     "cdk:synth": "npm run synth --workspace=cdk",
@@ -27,5 +29,8 @@
     "cdk",
     "service",
     "ui"
-  ]
+  ],
+  "dependencies": {
+    "concurrently": "^10.0.6"
+  }
 }

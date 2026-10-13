@@ -1,8 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { signal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { App } from './app';
+import { GoogleAuthService } from './auth/google-auth.service';
 import { routes } from './app.routes';
 import { BannerComponent } from './banner/banner.component';
 import { FmeaSelectionService } from './services/fmea-selection.service';
@@ -13,6 +15,17 @@ import { TeamService } from './services/team.service';
 describe('App', () => {
   let fixture: ComponentFixture<App>;
   let selection: FmeaSelectionService;
+  const authMock = {
+    user: signal({ sub: 'google-sub', email: 'user@example.org', name: 'Test User', picture: '' }),
+    accessDenied: signal(false),
+    configurationError: signal(false),
+    signInError: signal(false),
+    isAuthenticated: signal(true),
+    token: 'test-id-token',
+    handleAuthorizationFailure: vi.fn(),
+    signOut: vi.fn(),
+    renderSignInButton: vi.fn(),
+  };
 
   beforeEach(async () => {
     localStorage.removeItem('fmea.selectedTeamId');
@@ -21,6 +34,7 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter(routes),
+        { provide: GoogleAuthService, useValue: authMock },
         { provide: FmeaService, useValue: { getFmeaEntriesForTeam: () => of([]), fmeaEntriesChanged$: of() } },
         { provide: SeasonService, useValue: { getAllSeasons: () => of([]) } },
         { provide: TeamService, useValue: { getAllTeams: () => of([]) } },

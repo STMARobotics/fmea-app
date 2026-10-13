@@ -1,17 +1,16 @@
-import { Injectable } from "@angular/core";
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from "@angular/core";
 import { map, Observable } from "rxjs";
-import { fromFetch } from "rxjs/fetch";
 
 @Injectable({
   providedIn: 'root'
 })
 export class TeamService {
+  private readonly http = inject(HttpClient);
 
   getAllTeams(): Observable<{ id: string, num: number, name: string, program: 'ftc' | 'frc' }[]> {
-    return fromFetch('/api/teams', {
-      selector: response => response.json()
-    }).pipe(
-      map((data: any[]) => data.map(team => ({
+    return this.http.get<{ id: string; teamNumber: number; name: string; program: 'ftc' | 'frc' }[]>('/api/teams').pipe(
+      map(data => data.map(team => ({
         id: team.id,
         num: team.teamNumber,
         name: team.name,

@@ -1,7 +1,10 @@
 {
   "/api": {
-    "target": "https://fmea.7028robotics.com",
-    "secure": true,
+    "target": "http://127.0.0.1:3000",
+    "changeOrigin": true
+  },
+  "/config.json": {
+    "target": "http://127.0.0.1:3000",
     "changeOrigin": true
   }
 }

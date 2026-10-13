@@ -1,89 +1,67 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
 import { SeasonService } from './season.service';
 
 describe('SeasonService', () => {
   let service: SeasonService;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     service = TestBed.inject(SeasonService);
+    http = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    http.verify();
   });
 
   it('maps API season fields into the app season model', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve([
-        { id: 'season-1', program: 'frc', name: 'Reefscape' },
-      ]),
-    }));
-
-    await expect(firstValueFrom(service.getAllSeasons())).resolves.toEqual([
+    const result = firstValueFrom(service.getAllSeasons());
+    http.expectOne('/api/seasons').flush([
       { id: 'season-1', program: 'frc', name: 'Reefscape' },
     ]);
+    await expect(result).resolves.toEqual([{ id: 'season-1', program: 'frc', name: 'Reefscape' }]);
   });
 
   it('creates a season through the API', async () => {
     const season = { id: 'season-1', program: 'frc' as const, name: 'Reefscape' };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(season),
-    }));
-
-    await expect(firstValueFrom(service.createSeason({
+    const result = firstValueFrom(service.createSeason({
       program: season.program,
       name: season.name,
-    }))).resolves.toEqual(season);
-    expect(fetch).toHaveBeenCalledWith('/api/seasons', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({ program: 'frc', name: 'Reefscape' }),
     }));
+    const request = http.expectOne('/api/seasons');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ program: 'frc', name: 'Reefscape' });
+    request.flush(season);
+    await expect(result).resolves.toEqual(season);
   });
 
   it('loads an individual season through the API', async () => {
     const season = { id: 'season-1', program: 'frc' as const, name: 'Reefscape' };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(season),
-    }));
-
-    await expect(firstValueFrom(service.getSeason('season-1'))).resolves.toEqual(season);
-    expect(fetch).toHaveBeenCalledWith('/api/seasons/season-1', expect.any(Object));
+    const result = firstValueFrom(service.getSeason('season-1'));
+    http.expectOne('/api/seasons/season-1').flush(season);
+    await expect(result).resolves.toEqual(season);
   });
 
   it('updates a season through the API', async () => {
     const season = { id: 'season-1', program: 'frc' as const, name: 'Reefscape' };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(season),
-    }));
-
-    await expect(firstValueFrom(service.updateSeason('season-1', {
+    const result = firstValueFrom(service.updateSeason('season-1', {
       name: 'Reefscape',
-    }))).resolves.toEqual(season);
-    expect(fetch).toHaveBeenCalledWith(
-      '/api/seasons/season-1',
-      expect.objectContaining({
-        method: 'PATCH',
-        body: JSON.stringify({ name: 'Reefscape' }),
-      })
-    );
+    }));
+    const request = http.expectOne('/api/seasons/season-1');
+    expect(request.request.method).toBe('PATCH');
+    request.flush(season);
+    await expect(result).resolves.toEqual(season);
   });
 
   it('deletes a season through the API', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve(''),
-    }));
-
-    await expect(firstValueFrom(service.deleteSeason('season-1'))).resolves.toBeUndefined();
-    expect(fetch).toHaveBeenCalledWith(
-      '/api/seasons/season-1',
-      expect.objectContaining({ method: 'DELETE' })
-    );
+    const result = firstValueFrom(service.deleteSeason('season-1'));
+    const request = http.expectOne('/api/seasons/season-1');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null);
+    await expect(result).resolves.toBeUndefined();
   });
 });

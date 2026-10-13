@@ -1,9 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
 import { CreateFmeaEntryRequest, FmeaEntry, FmeaService, PartialFmeaEntry } from './fmea.service';
 
 describe('FmeaService', () => {
   let service: FmeaService;
+  let http: HttpTestingController;
   const entries: FmeaEntry[] = [{
     id: 'entry-1',
     team: { id: 'team-1', program: 'ftc', teamNumber: 123, teamName: 'Robotics' },
@@ -20,50 +23,38 @@ describe('FmeaService', () => {
   }];
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     service = TestBed.inject(FmeaService);
+    http = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    http.verify();
   });
 
   it('requests and returns entries for the given team and season', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(entries) });
-    vi.stubGlobal('fetch', fetchMock);
-
-    await expect(firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1'))).resolves.toEqual(entries);
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/fmea/team-1/season-1',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    const result = firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1'));
+    http.expectOne('/api/fmea/team-1/season-1').flush(entries);
+    await expect(result).resolves.toEqual(entries);
   });
 
   it('reports an HTTP error when FMEA items cannot be loaded', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
-
-    await expect(firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1')))
+    const result = firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1'));
+    http.expectOne('/api/fmea/team-1/season-1').flush({}, { status: 503, statusText: 'Unavailable' });
+    await expect(result)
       .rejects.toThrow('Unable to load FMEA items (503).');
   });
 
   it('requests a single FMEA entry by id', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(entries[0]),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
-    await expect(firstValueFrom(service.getFmeaEntry('entry-1'))).resolves.toEqual(entries[0]);
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/fmea/entry-1',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    const result = firstValueFrom(service.getFmeaEntry('entry-1'));
+    http.expectOne('/api/fmea/entry-1').flush(entries[0]);
+    await expect(result).resolves.toEqual(entries[0]);
   });
 
   it('reports an HTTP error when a single FMEA entry cannot be loaded', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
-
-    await expect(firstValueFrom(service.getFmeaEntry('missing')))
+    const result = firstValueFrom(service.getFmeaEntry('missing'));
+    http.expectOne('/api/fmea/missing').flush({}, { status: 404, statusText: 'Not Found' });
+    await expect(result)
       .rejects.toThrow('Unable to load FMEA item (404).');
   });
 
@@ -80,28 +71,16 @@ describe('FmeaService', () => {
       currentProcessControls: 'Test-only process control',
       det: 2,
     };
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(entries[0]),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
-    await expect(firstValueFrom(service.createFmeaEntry(partialEntry))).resolves.toEqual(entries[0]);
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/fmea/new',
-      expect.objectContaining({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(partialEntry),
-        signal: expect.any(AbortSignal),
-      }),
-    );
+    const result = firstValueFrom(service.createFmeaEntry(partialEntry));
+    const request = http.expectOne('/api/fmea/new');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(partialEntry);
+    request.flush(entries[0]);
+    await expect(result).resolves.toEqual(entries[0]);
   });
 
   it('reports an HTTP error when an FMEA entry cannot be created', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 400 }));
-
-    await expect(firstValueFrom(service.createFmeaEntry({
+    const result = firstValueFrom(service.createFmeaEntry({
       teamId: 'team-1',
       seasonId: 'season-1',
       subsystemId: 'subsystem-1',
@@ -112,38 +91,29 @@ describe('FmeaService', () => {
       occ: 1,
       currentProcessControls: 'Test-only control',
       det: 1,
-    }))).rejects.toThrow('Unable to create FMEA item (400).');
+    }));
+    http.expectOne('/api/fmea/new').flush({}, { status: 400, statusText: 'Bad Request' });
+    await expect(result).rejects.toThrow('Unable to create FMEA item (400).');
   });
 
   it('deletes an FMEA entry by id', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve('') });
-    vi.stubGlobal('fetch', fetchMock);
-
-    await expect(firstValueFrom(service.deleteFmeaEntry('entry-1'))).resolves.toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/fmea/entry-1',
-      expect.objectContaining({
-        method: 'DELETE',
-        signal: expect.any(AbortSignal),
-      }),
-    );
+    const result = firstValueFrom(service.deleteFmeaEntry('entry-1'));
+    const request = http.expectOne('/api/fmea/entry-1');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null);
+    await expect(result).resolves.toBeUndefined();
   });
 
   it('reports an HTTP error when an FMEA entry cannot be deleted', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
-
-    await expect(firstValueFrom(service.deleteFmeaEntry('entry-1')))
+    const result = firstValueFrom(service.deleteFmeaEntry('entry-1'));
+    http.expectOne('/api/fmea/entry-1').flush({}, { status: 500, statusText: 'Server Error' });
+    await expect(result)
       .rejects.toThrow('Unable to delete FMEA item (500).');
   });
 
   it('notifies readiness subscribers after successful creates, updates, and deletes', async () => {
     const changes: void[] = [];
     const subscription = service.fmeaEntriesChanged$.subscribe(() => changes.push(undefined));
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(entries[0]) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(entries[0]) })
-      .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('') });
-    vi.stubGlobal('fetch', fetchMock);
     const partialEntry: CreateFmeaEntryRequest = {
       teamId: 'team-1',
       seasonId: 'season-1',
@@ -157,21 +127,19 @@ describe('FmeaService', () => {
       det: 2,
     };
 
-    await firstValueFrom(service.createFmeaEntry(partialEntry));
-    await firstValueFrom(service.updateFmeaEntry('entry-1', partialEntry));
-    await firstValueFrom(service.deleteFmeaEntry('entry-1'));
+    const createResult = firstValueFrom(service.createFmeaEntry(partialEntry));
+    http.expectOne('/api/fmea/new').flush(entries[0]);
+    await createResult;
+    const updateResult = firstValueFrom(service.updateFmeaEntry('entry-1', partialEntry));
+    const updateRequest = http.expectOne('/api/fmea/entry-1');
+    expect(updateRequest.request.method).toBe('PATCH');
+    updateRequest.flush(entries[0]);
+    await updateResult;
+    const deleteResult = firstValueFrom(service.deleteFmeaEntry('entry-1'));
+    http.expectOne('/api/fmea/entry-1').flush(null);
+    await deleteResult;
     subscription.unsubscribe();
 
     expect(changes).toHaveLength(3);
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      '/api/fmea/entry-1',
-      expect.objectContaining({
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(partialEntry),
-        signal: expect.any(AbortSignal),
-      }),
-    );
   });
 });

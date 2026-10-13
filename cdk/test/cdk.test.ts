@@ -1,17 +1,33 @@
-// import * as cdk from 'aws-cdk-lib/core';
-// import { Template } from 'aws-cdk-lib/assertions';
-// import * as Cdk from '../lib/cdk-stack';
+import * as cdk from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
+import { BackendStack } from '../lib/backend-stack';
 
-// example test. To run these tests, uncomment this file along with the
-// example resource in lib/cdk-stack.ts
-test('SQS Queue Created', () => {
-//   const app = new cdk.App();
-//     // WHEN
-//   const stack = new Cdk.CdkStack(app, 'MyTestStack');
-//     // THEN
-//   const template = Template.fromStack(stack);
+test('all HTTP API routes require the Google Workspace authorizer', () => {
+	const app = new cdk.App();
+	const stack = new BackendStack(app, 'BackendStack', {
+		googleClientId: 'test-web-client-id',
+		allowedDomain: 'example.org',
+	});
+	const template = Template.fromStack(stack);
+	const routes = Object.values(template.findResources('AWS::ApiGatewayV2::Route'));
 
-//   template.hasResourceProperties('AWS::SQS::Queue', {
-//     VisibilityTimeout: 300
-//   });
+	expect(routes.length).toBeGreaterThan(0);
+	for (const route of routes) {
+		expect(route.Properties.AuthorizationType).toBe('CUSTOM');
+		expect(route.Properties.AuthorizerId).toBeDefined();
+	}
+	template.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', {
+		AuthorizerType: 'REQUEST',
+		IdentitySource: ['$request.header.Authorization'],
+		AuthorizerPayloadFormatVersion: '1.0',
+		AuthorizerResultTtlInSeconds: 0,
+	});
+	template.hasResourceProperties('AWS::Lambda::Function', {
+		Environment: {
+			Variables: {
+				GOOGLE_CLIENT_ID: 'test-web-client-id',
+				ALLOWED_DOMAIN: 'example.org',
+			},
+		},
+	});
 });

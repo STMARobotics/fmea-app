@@ -1,5 +1,64 @@
 # fmea-app
 
+## Local development
+
+The Angular development server can proxy API requests to a local Node server,
+which invokes the same handlers used by the deployed API. The local API uses
+AWS credentials and the DynamoDB table specified by `TABLE_NAME`; it can modify
+that table, so use a development table/account if possible.
+
+Install dependencies from the repository root:
+
+```bash
+npm install
+```
+
+Create a `service/.env` file, and add:
+```
+TABLE_NAME=<dynamotablename>
+GOOGLE_CLIENT_ID=574028865613-b8apa4bcpai776gtsqm14mdej3iubeha.apps.googleusercontent.com
+ALLOWED_DOMAIN=stmarobotics.org
+```
+
+Log in to AWS IAM access portal, and copy the commands to set your AWS credentials into the environment. Run those commands.
+
+```bash
+export AWS_ACCESS_KEY_ID="<ACCESS_KEY>"
+export AWS_SECRET_ACCESS_KEY="<SECRET_KEY>"
+export AWS_SESSION_TOKEN="<SESSION_TOKEN>"
+```
+Note: These credentials expire every 4 hours. When they expire, just repeat the process with new credentials.
+
+Start both the UI and API concurrently by running
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:4200`.The UI proxy sends `/api` requests to
+`http://127.0.0.1:3000`. The API binds to localhost by default; override
+`API_PORT` or `API_HOST` if needed.
+
+## Google OIDC
+
+Create a Google OAuth 2.0 Web application client and add these authorized
+JavaScript origins: `http://localhost:4200` and
+`https://fmea.7028robotics.com`. No redirect URI is needed; Google Identity
+Services opens its sign-in popup. The client ID is public frontend configuration,
+not a client secret. Set `googleClientId` and `allowedDomain` in
+`cdk/lib/config.ts`, the deployed frontend, and the local API all read those
+values from that file. Use the Workspace domain present in the ID token's `hd`
+claim.
+
+```bash
+npm run cdk:synth
+```
+
+The UI loads `/config.json` at runtime. Locally, the API serves reads the values from
+the environment. The frontend stack publishes the same values with the deployed assets.
+You can temporarily override either value in `service/.env` for local testing. Keep
+`service/.env` out of version control.
+
 ## Season API
 
 The backend exposes season operations through API Gateway and focused Lambda handlers:

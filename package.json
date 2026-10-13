@@ -16,7 +16,11 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test --workspaces --if-present",
+    "test:backend": "npm run test --workspace=service -- --test-force-exit",
+    "test:angular": "npm run test --workspace=ui -- --watch=false",
+    "test": "npm run test:backend && npm run test:angular",
+    "dev": "concurrently \"npm run dev -w service\" \"npm run dev -w ui\"",
+    "dev:api": "npm run dev --workspace=service",
     "dev:ui": "npm run dev -w ui",
     "build": "npm run build --workspaces",
     "cdk:synth": "npm run synth --workspace=cdk",
@@ -27,5 +31,8 @@
     "cdk",
     "service",
     "ui"
-  ]
+  ],
+  "dependencies": {
+    "concurrently": "^10.0.6"
+  }
 }

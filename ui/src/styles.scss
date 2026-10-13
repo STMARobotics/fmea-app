@@ -22,6 +22,12 @@ body {
   box-shadow: 0 16px 40px rgb(0 0 0 / 38%) !important;
 }
 
+.mat-mdc-menu-panel {
+  border: 1px solid #30343a;
+  background: #050607 !important;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 55%) !important;
+}
+
 .mat-mdc-select-trigger {
   padding-inline: 12px;
 }

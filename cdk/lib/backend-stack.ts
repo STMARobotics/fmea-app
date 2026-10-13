@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as authorizers from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -7,11 +8,21 @@ import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
+interface BackendStackProps extends cdk.StackProps {
+  googleClientId: string;
+  allowedDomain: string;
+}
+
 export class BackendStack extends cdk.Stack {
   public readonly httpApi: apigwv2.HttpApi;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: BackendStackProps) {
     super(scope, id, props);
+
+    const { googleClientId, allowedDomain } = props;
+    if (!googleClientId?.trim() || !allowedDomain?.trim()) {
+      throw new Error('Set googleClientId and allowedDomain in cdk/lib/config.ts before synthesis.');
+    }
 
     // 1. DynamoDB Table
     const table = new dynamodb.Table(this, 'AppDataTable', {
@@ -150,7 +161,29 @@ export class BackendStack extends cdk.Stack {
     table.grantReadWriteData(updateActionItemHandler);
     table.grantReadWriteData(createActionItemHandler);
 
-    this.httpApi = new apigwv2.HttpApi(this, 'fmea-api');
+    const authorizerHandler = new nodejs.NodejsFunction(this, 'GoogleWorkspaceAuthorizer', {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      entry: path.join(__dirname, '../../service/src/auth/authorizer.handler.ts'),
+      handler: 'handler',
+      environment: {
+        GOOGLE_CLIENT_ID: googleClientId,
+        ALLOWED_DOMAIN: allowedDomain,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+    const authorizer = new authorizers.HttpLambdaAuthorizer(
+      'GoogleWorkspaceAuthorizer',
+      authorizerHandler,
+      {
+        identitySource: ['$request.header.Authorization'],
+        resultsCacheTtl: cdk.Duration.seconds(0),
+        responseTypes: [authorizers.HttpLambdaResponseType.IAM],
+      },
+    );
+
+    this.httpApi = new apigwv2.HttpApi(this, 'fmea-api', {
+      defaultAuthorizer: authorizer,
+    });
 
     this.httpApi.addRoutes({
       path: '/api/seasons',

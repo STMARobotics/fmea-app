@@ -1,0 +1,23 @@
+@if (auth.user(); as account) {
+  <button
+    class="account-trigger"
+    mat-icon-button
+    [matMenuTriggerFor]="accountMenu"
+    [attr.aria-label]="'Account menu for ' + account.email"
+  >
+    @if (account.picture) {
+      <img [src]="account.picture" [alt]="account.name" referrerpolicy="no-referrer">
+    } @else {
+      <span>{{ (account.name || account.email || 'G').charAt(0).toUpperCase() }}</span>
+    }
+  </button>
+  <mat-menu #accountMenu="matMenu" xPosition="before">
+    <div class="account-details">
+      <strong>{{ account.name }}</strong>
+      <span>{{ account.email }}</span>
+    </div>
+    <button mat-menu-item (click)="auth.signOut()">Sign out</button>
+  </mat-menu>
+} @else {
+  <div #googleSignInButton class="google-sign-in-button"></div>
+}

@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { fromFetch } from 'rxjs/fetch';
+import { withApiError } from './api-error';
 
 export type Subsystem = {
   id: string;
@@ -18,30 +19,17 @@ export type CreateSubsystemRequest = {
   providedIn: 'root',
 })
 export class SubsystemService {
+  private readonly http = inject(HttpClient);
+
   getSubsystemsForTeam(teamId: string): Observable<Subsystem[]> {
-    return fromFetch(`/api/subsystems/${encodeURIComponent(teamId)}`, {
-      selector: response => {
-        if (!response.ok) {
-          throw new Error(`Unable to load subsystems (${response.status}).`);
-        }
-        return response.json();
-      },
-    });
+    return this.http.get<Subsystem[]>(`/api/subsystems/${encodeURIComponent(teamId)}`).pipe(
+      withApiError('Unable to load subsystems'),
+    );
   }
 
   createSubsystem(teamId: string, request: CreateSubsystemRequest): Observable<Subsystem> {
-    return fromFetch(`/api/subsystems/${encodeURIComponent(teamId)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-      selector: response => {
-        if (!response.ok) {
-          throw new Error(`Unable to create subsystem (${response.status}).`);
-        }
-        return response.json();
-      },
-    });
+    return this.http.post<Subsystem>(`/api/subsystems/${encodeURIComponent(teamId)}`, request).pipe(
+      withApiError('Unable to create subsystem'),
+    );
   }
 }

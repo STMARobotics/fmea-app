@@ -16,6 +16,8 @@ interface FrontendStackProps extends cdk.StackProps {
   hostedZoneId: string;
   httpApi: apigwv2.IHttpApi;
   certificate: acm.ICertificate;
+  googleClientId: string;
+  allowedDomain: string;
 }
 
 export class FrontendStack extends cdk.Stack {
@@ -86,7 +88,13 @@ function handler(event) {
     // 5. Automatically deploy built UI assets to S3 and invalidate CloudFront
     // Note: Ensure /ui/dist exists or update path to match your UI build directory
     new s3deploy.BucketDeployment(this, 'DeployFrontend', {
-      sources: [s3deploy.Source.asset(path.join(__dirname, '../../ui/dist/fmea-poc-ui/browser'))],
+      sources: [
+        s3deploy.Source.asset(path.join(__dirname, '../../ui/dist/fmea-poc-ui/browser')),
+        s3deploy.Source.data('config.json', JSON.stringify({
+          googleClientId: props.googleClientId,
+          allowedDomain: props.allowedDomain,
+        })),
+      ],
       destinationBucket: siteBucket,
       distribution: distribution,
       distributionPaths: ['/*'],

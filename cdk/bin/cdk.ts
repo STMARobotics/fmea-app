@@ -17,13 +17,12 @@ const certStack = new CertificateStack(app, 'AppCertificateStack', {
 });
 
 // 2. Backend stack in us-east-2
-const backendStack = new BackendStack(app, prodConfig.backendStackName, {
+const backendStack = new BackendStack(app, 'AppBackendStack', {
   env: { account, region: 'us-east-2' },
-  tableName: prodConfig.tableName,
 });
 
 // 3. Frontend stack in us-east-2, passing the us-east-1 certificate and backend HTTP API
-new FrontendStack(app, prodConfig.frontendStackName, {
+new FrontendStack(app, 'AppFrontendStack', {
   env: { account, region: 'us-east-2' },
   domainName: prodConfig.domainName,
   subdomain: prodConfig.subdomain,

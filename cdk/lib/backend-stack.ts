@@ -7,19 +7,15 @@ import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
-interface BackendStackProps extends cdk.StackProps {
-  tableName: string;
-}
-
 export class BackendStack extends cdk.Stack {
   public readonly httpApi: apigwv2.HttpApi;
 
-  constructor(scope: Construct, id: string, props: BackendStackProps) {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // 1. DynamoDB Table
     const table = new dynamodb.Table(this, 'AppDataTable', {
-      tableName: props.tableName,
+      tableName: 'fmea',
       partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,

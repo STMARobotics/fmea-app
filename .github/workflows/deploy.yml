@@ -12,7 +12,8 @@ permissions:
 
 jobs:
   validate:
-    name: Build, Test, and IoC Diff
+    name: Build, Test, and IoC Diff (PR or branch)
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main')
     runs-on: ubuntu-latest
 
     steps:
@@ -46,9 +47,8 @@ jobs:
         run: npm exec -w cdk -- cdk diff --all --method=template
 
   deploy:
-    name: Deploy AWS CDK Stacks
-    needs: validate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    name: Build, Test, & Deploy AWS CDK Stacks (main)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -63,6 +63,12 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+
+      - name: Build Monorepo Workspaces
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v6

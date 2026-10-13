@@ -6,7 +6,10 @@ import {
 
 export type HttpApiAuthorizerEvent = {
   headers?: Record<string, string | undefined>;
-  routeArn: string;
+  methodArn: string;
+  requestContext?: {
+    requestId?: string;
+  };
 };
 
 export type AuthorizerPolicy = {
@@ -43,12 +46,16 @@ export const authorizeRequest = async (
   event: HttpApiAuthorizerEvent,
   verify = verifyWorkspaceIdToken,
 ): Promise<AuthorizerPolicy> => {
+  const logContext = {
+    ...(event.requestContext?.requestId ? { requestId: event.requestContext.requestId } : {}),
+    methodArn: event.methodArn,
+  };
   const authorization = event.headers?.authorization ?? event.headers?.Authorization;
   const token = getBearerToken(authorization);
   if (!token) {
     const reason = authorization ? 'malformed_bearer_token' : 'missing_bearer_token';
-    console.warn(JSON.stringify({ event: 'authorization_denied', reason }));
-    return createPolicy('unauthenticated', 'Deny', event.routeArn);
+    console.warn(JSON.stringify({ event: 'authorization_denied', reason, ...logContext }));
+    return createPolicy('unauthenticated', 'Deny', event.methodArn);
   }
 
   try {
@@ -63,13 +70,13 @@ export const authorizeRequest = async (
     return createPolicy(
       payload.sub,
       'Allow',
-      event.routeArn,
+      event.methodArn,
       Object.keys(context).length > 0 ? context : undefined,
     );
   } catch (error) {
     const reason = error instanceof GoogleIdTokenError ? error.reason : 'verification_failed';
-    console.warn(JSON.stringify({ event: 'authorization_denied', reason }));
-    return createPolicy('unauthorized', 'Deny', event.routeArn);
+    console.warn(JSON.stringify({ event: 'authorization_denied', reason, ...logContext }));
+    return createPolicy('unauthorized', 'Deny', event.methodArn);
   }
 };
 

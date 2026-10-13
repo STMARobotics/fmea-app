@@ -4,14 +4,14 @@ import type { TokenPayload } from 'google-auth-library';
 import { authorizeRequest, createPolicy } from './authorizer.handler.js';
 import { GoogleIdTokenError, verifyWorkspaceIdToken } from './google-id-token.js';
 
-const routeArn = 'arn:aws:execute-api:us-east-2:123456789012:api-id/prod/GET/api/teams';
+const methodArn = 'arn:aws:execute-api:us-east-2:123456789012:api-id/prod/GET/api/teams';
 
 test('creates an IAM policy with the requested principal, effect, and route', () => {
-  assert.deepEqual(createPolicy('google-sub', 'Allow', routeArn), {
+  assert.deepEqual(createPolicy('google-sub', 'Allow', methodArn), {
     principalId: 'google-sub',
     policyDocument: {
       Version: '2012-10-17',
-      Statement: [{ Action: 'execute-api:Invoke', Effect: 'Allow', Resource: routeArn }],
+      Statement: [{ Action: 'execute-api:Invoke', Effect: 'Allow', Resource: methodArn }],
     },
   });
 });
@@ -19,6 +19,9 @@ test('creates an IAM policy with the requested principal, effect, and route', ()
 test('allows the verified Google sub for the current route', async () => {
   const previousClientId = process.env.GOOGLE_CLIENT_ID;
   const previousDomain = process.env.ALLOWED_DOMAIN;
+  const originalInfo = console.info;
+  let successLogs = 0;
+  console.info = () => { successLogs += 1; };
   process.env.GOOGLE_CLIENT_ID = 'client-id';
   process.env.ALLOWED_DOMAIN = 'example.org';
   const verify = async (token: string, options: Parameters<typeof verifyWorkspaceIdToken>[1]) => {
@@ -34,7 +37,7 @@ test('allows the verified Google sub for the current route', async () => {
   try {
     const policy = await authorizeRequest({
       headers: { Authorization: 'Bearer id-token' },
-      routeArn,
+      methodArn,
     }, verify);
 
     assert.equal(policy.principalId, 'google-sub');
@@ -43,8 +46,10 @@ test('allows the verified Google sub for the current route', async () => {
       name: 'Example Person',
     });
     assert.equal(policy.policyDocument.Statement[0].Effect, 'Allow');
-    assert.equal(policy.policyDocument.Statement[0].Resource, routeArn);
+    assert.equal(policy.policyDocument.Statement[0].Resource, methodArn);
+    assert.equal(successLogs, 0);
   } finally {
+    console.info = originalInfo;
     if (previousClientId === undefined) delete process.env.GOOGLE_CLIENT_ID;
     else process.env.GOOGLE_CLIENT_ID = previousClientId;
     if (previousDomain === undefined) delete process.env.ALLOWED_DOMAIN;
@@ -56,15 +61,16 @@ test('denies a missing token and a failed Workspace verification', async () => {
   const warnings: string[] = [];
   const originalWarn = console.warn;
   console.warn = (message?: unknown) => warnings.push(String(message));
-  const event = { headers: {}, routeArn };
+  const event = { headers: {}, methodArn, requestContext: { requestId: 'gateway-denial-id' } };
   try {
     const missingToken = await authorizeRequest(event);
     assert.equal(missingToken.policyDocument.Statement[0].Effect, 'Deny');
-    assert.equal(missingToken.policyDocument.Statement[0].Resource, routeArn);
+    assert.equal(missingToken.policyDocument.Statement[0].Resource, methodArn);
 
     const invalidToken = await authorizeRequest({
       headers: { authorization: 'Bearer sensitive-id-token' },
-      routeArn,
+      methodArn,
+      requestContext: { requestId: 'gateway-denial-id' },
     }, async () => { throw new GoogleIdTokenError('domain-not-allowed'); });
     assert.equal(invalidToken.principalId, 'unauthorized');
     assert.equal(invalidToken.policyDocument.Statement[0].Effect, 'Deny');
@@ -73,8 +79,18 @@ test('denies a missing token and a failed Workspace verification', async () => {
   }
 
   assert.deepEqual(warnings.map(message => JSON.parse(message)), [
-    { event: 'authorization_denied', reason: 'missing_bearer_token' },
-    { event: 'authorization_denied', reason: 'domain-not-allowed' },
+    {
+      event: 'authorization_denied',
+      reason: 'missing_bearer_token',
+      requestId: 'gateway-denial-id',
+      methodArn,
+    },
+    {
+      event: 'authorization_denied',
+      reason: 'domain-not-allowed',
+      requestId: 'gateway-denial-id',
+      methodArn,
+    },
   ]);
   assert.equal(warnings.join(' ').includes('sensitive-id-token'), false);
 });

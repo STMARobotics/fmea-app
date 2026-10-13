@@ -43,7 +43,7 @@ jobs:
 
       - name: CDK Diff
         if: github.event_name == 'pull_request'
-        run: npm exec -w cdk -- cdk diff --all
+        run: npm exec -w cdk -- cdk diff --all --method=template
 
   deploy:
     name: Deploy AWS CDK Stacks

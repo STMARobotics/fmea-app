@@ -1,17 +1,18 @@
-name: Deploy Infrastructure
+name: CI
 
 on:
   push:
     branches:
-      - main
+      - '**'
+  pull_request:
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  deploy:
-    name: Build & Deploy AWS CDK Stacks
+  validate:
+    name: Build, Test, and IoC Diff
     runs-on: ubuntu-latest
 
     steps:
@@ -32,6 +33,36 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Configure AWS Credentials via OIDC
+        if: github.event_name == 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::738044534240:role/GitHubAction-AssumeRoleWithAction
+          aws-region: us-east-2
+
+      - name: CDK Diff
+        if: github.event_name == 'pull_request'
+        run: npm exec -w cdk -- cdk diff --all
+
+  deploy:
+    name: Deploy AWS CDK Stacks
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v6

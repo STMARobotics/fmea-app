@@ -19,7 +19,7 @@ export class BackendStack extends cdk.Stack {
       partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // Change to RETAIN for production data
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     table.addGlobalSecondaryIndex({

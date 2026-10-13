@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { TokenPayload } from 'google-auth-library';
 import { authorizeRequest, createPolicy } from './authorizer.handler.js';
-import { verifyWorkspaceIdToken } from './google-id-token.js';
+import { GoogleIdTokenError, verifyWorkspaceIdToken } from './google-id-token.js';
 
 const routeArn = 'arn:aws:execute-api:us-east-2:123456789012:api-id/prod/GET/api/teams';
 
@@ -53,15 +53,28 @@ test('allows the verified Google sub for the current route', async () => {
 });
 
 test('denies a missing token and a failed Workspace verification', async () => {
+  const warnings: string[] = [];
+  const originalWarn = console.warn;
+  console.warn = (message?: unknown) => warnings.push(String(message));
   const event = { headers: {}, routeArn };
-  const missingToken = await authorizeRequest(event);
-  assert.equal(missingToken.policyDocument.Statement[0].Effect, 'Deny');
-  assert.equal(missingToken.policyDocument.Statement[0].Resource, routeArn);
+  try {
+    const missingToken = await authorizeRequest(event);
+    assert.equal(missingToken.policyDocument.Statement[0].Effect, 'Deny');
+    assert.equal(missingToken.policyDocument.Statement[0].Resource, routeArn);
 
-  const invalidToken = await authorizeRequest({
-    headers: { authorization: 'Bearer invalid' },
-    routeArn,
-  }, async () => { throw new Error('verification failed'); });
-  assert.equal(invalidToken.principalId, 'unauthorized');
-  assert.equal(invalidToken.policyDocument.Statement[0].Effect, 'Deny');
+    const invalidToken = await authorizeRequest({
+      headers: { authorization: 'Bearer sensitive-id-token' },
+      routeArn,
+    }, async () => { throw new GoogleIdTokenError('domain-not-allowed'); });
+    assert.equal(invalidToken.principalId, 'unauthorized');
+    assert.equal(invalidToken.policyDocument.Statement[0].Effect, 'Deny');
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.deepEqual(warnings.map(message => JSON.parse(message)), [
+    { event: 'authorization_denied', reason: 'missing_bearer_token' },
+    { event: 'authorization_denied', reason: 'domain-not-allowed' },
+  ]);
+  assert.equal(warnings.join(' ').includes('sensitive-id-token'), false);
 });

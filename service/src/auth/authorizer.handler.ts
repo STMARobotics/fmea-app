@@ -1,5 +1,6 @@
 import {
   getBearerToken,
+  GoogleIdTokenError,
   verifyWorkspaceIdToken,
 } from './google-id-token.js';
 
@@ -45,6 +46,8 @@ export const authorizeRequest = async (
   const authorization = event.headers?.authorization ?? event.headers?.Authorization;
   const token = getBearerToken(authorization);
   if (!token) {
+    const reason = authorization ? 'malformed_bearer_token' : 'missing_bearer_token';
+    console.warn(JSON.stringify({ event: 'authorization_denied', reason }));
     return createPolicy('unauthenticated', 'Deny', event.routeArn);
   }
 
@@ -63,7 +66,9 @@ export const authorizeRequest = async (
       event.routeArn,
       Object.keys(context).length > 0 ? context : undefined,
     );
-  } catch {
+  } catch (error) {
+    const reason = error instanceof GoogleIdTokenError ? error.reason : 'verification_failed';
+    console.warn(JSON.stringify({ event: 'authorization_denied', reason }));
     return createPolicy('unauthorized', 'Deny', event.routeArn);
   }
 };

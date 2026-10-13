@@ -1,5 +1,27 @@
-@if (!isAboutFmeaPage) {
-  <banner (teamChange)="onTeamChange($event)" (seasonChange)="onSeasonChange($event)"></banner>
-}
+<header class="app-header">
+  <a class="app-brand" routerLink="/fmea" aria-label="FMEA home">FMEA</a>
+  <app-auth-control />
+</header>
 
-<router-outlet></router-outlet>
+@if (auth.isAuthenticated()) {
+  @if (!isAboutFmeaPage) {
+    <banner (teamChange)="onTeamChange($event)" (seasonChange)="onSeasonChange($event)"></banner>
+  }
+  <router-outlet></router-outlet>
+} @else {
+  <main class="auth-gate" aria-live="polite">
+    @if (auth.accessDenied()) {
+      <h1>Access denied</h1>
+      <p>Sign in with an account from your Google Workspace domain.</p>
+    } @else {
+      <h1>Sign in to continue</h1>
+      <p>A Google Workspace account is required to use FMEA.</p>
+    }
+    @if (auth.configurationError()) {
+      <p class="auth-error">Google sign-in is not configured. Contact the application administrator.</p>
+    }
+    @if (auth.signInError()) {
+      <p class="auth-error">Google sign-in could not be completed. Please try again.</p>
+    }
+  </main>
+}

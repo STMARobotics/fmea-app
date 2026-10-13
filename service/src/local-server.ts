@@ -1,4 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { getBearerToken, GoogleIdTokenError, verifyWorkspaceIdToken } from './auth/google-id-token.js';
+import { prodConfig } from '../../cdk/lib/config.js';
 import { handler as createActionItem } from './fmea/create-action-item.handler.js';
 import { handler as createFmeaEntry } from './fmea/create-fmea-entry.handler.js';
 import { handler as deleteFmeaEntry } from './fmea/delete-fmea-entry.handler.js';
@@ -23,6 +25,14 @@ type LambdaEvent = {
   body?: string | null;
   pathParameters?: Record<string, string | undefined> | null;
   queryStringParameters?: Record<string, string | undefined> | null;
+  requestContext?: {
+    authorizer?: {
+      lambda?: {
+        email?: string;
+        name?: string;
+      };
+    };
+  };
 };
 
 type LambdaResponse = {
@@ -93,12 +103,48 @@ const sendJson = (response: ServerResponse, statusCode: number, body: unknown) =
   response.end(JSON.stringify(body));
 };
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID ?? prodConfig.googleClientId;
+const allowedDomain = process.env.ALLOWED_DOMAIN ?? prodConfig.allowedDomain;
+
 const server = createServer(async (request, response) => {
   try {
     const requestUrl = new URL(request.url ?? '/', 'http://localhost');
+    if (request.method === 'GET' && requestUrl.pathname === '/config.json') {
+      sendJson(response, 200, {
+        googleClientId,
+        allowedDomain,
+      });
+      return;
+    }
+
     const route = matchRoute(request.method ?? 'GET', requestUrl.pathname);
     if (!route) {
       sendJson(response, 404, { message: 'Not found' });
+      return;
+    }
+
+    const token = getBearerToken(request.headers.authorization);
+    if (!token) {
+      sendJson(response, 401, { message: 'Unauthorized' });
+      return;
+    }
+    let principalContext: { email?: string; name?: string } = {};
+    try {
+      const payload = await verifyWorkspaceIdToken(token, {
+        allowedDomain,
+        clientId: googleClientId,
+      });
+      principalContext = {
+        ...(payload.email ? { email: payload.email } : {}),
+        ...(payload.name ? { name: payload.name } : {}),
+      };
+    } catch (error) {
+      const statusCode = error instanceof GoogleIdTokenError
+        ? error.reason === 'domain-not-allowed' ? 403 : error.reason === 'configuration' ? 500 : 401
+        : 401;
+      sendJson(response, statusCode, {
+        message: statusCode === 403 ? 'Google Workspace account not allowed' : 'Unauthorized',
+      });
       return;
     }
 
@@ -106,6 +152,7 @@ const server = createServer(async (request, response) => {
       body: await readBody(request),
       pathParameters: route.pathParameters,
       queryStringParameters: Object.fromEntries(requestUrl.searchParams.entries()),
+      requestContext: { authorizer: { lambda: principalContext } },
     });
 
     response.statusCode = result.statusCode;
@@ -120,8 +167,8 @@ const server = createServer(async (request, response) => {
 });
 
 const tableName = process.env.TABLE_NAME;
-if (!tableName) {
-  console.error('Set TABLE_NAME to the DynamoDB table the local API should use.');
+if (!tableName || !googleClientId || !allowedDomain) {
+  console.error('Set TABLE_NAME in service/.env and configure Google auth in cdk/lib/config.ts.');
   process.exitCode = 1;
 } else {
   const port = Number(process.env.API_PORT ?? 3000);

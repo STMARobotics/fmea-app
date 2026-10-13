@@ -5,6 +5,8 @@ export interface AppConfig {
   backendStackName: string;
   frontendStackName: string;
   certificateStackName: string;
+  googleClientId: string;
+  allowedDomain: string;
 }
 
 export const prodConfig: AppConfig = {
@@ -14,4 +16,6 @@ export const prodConfig: AppConfig = {
   backendStackName: 'fmea-backend',
   frontendStackName: 'fmea-frontend',
   certificateStackName: 'fmea-certificate',
+  googleClientId: '574028865613-b8apa4bcpai776gtsqm14mdej3iubeha.apps.googleusercontent.com',
+  allowedDomain: 'stmarobotics.org',
 };

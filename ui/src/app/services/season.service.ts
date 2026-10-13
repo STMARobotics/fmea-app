@@ -1,6 +1,7 @@
-import { Injectable } from "@angular/core";
-import { Observable } from "rxjs";
-import { fromFetch } from "rxjs/fetch";
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from "@angular/core";
+import { map, Observable } from "rxjs";
+import { withApiError } from './api-error';
 
 export type Season = {
   id: string,
@@ -12,70 +13,38 @@ export type Season = {
   providedIn: 'root'
 })
 export class SeasonService {
+  private readonly http = inject(HttpClient);
 
   getAllSeasons(): Observable<Season[]> {
-    return fromFetch('/api/seasons', {
-      selector: response => {
-        if (!response.ok) {
-          throw new Error(`Unable to load seasons (${response.status}).`);
-        }
-        return response.json();
-      }
-    });
+    return this.http.get<Season[]>('/api/seasons').pipe(withApiError('Unable to load seasons'));
   }
 
   getSeason(seasonId: string): Observable<Season> {
-    return fromFetch(`/api/seasons/${encodeURIComponent(seasonId)}`, {
-      selector: response => {
-        if (!response.ok) {
-          throw new Error(`Unable to load season (${response.status}).`);
-        }
-        return response.json();
-      }
-    });
+    return this.http.get<Season>(`/api/seasons/${encodeURIComponent(seasonId)}`).pipe(
+      withApiError('Unable to load season'),
+    );
   }
 
   createSeason(season: Pick<Season, 'program' | 'name'>): Observable<Season> {
-    return fromFetch('/api/seasons', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(season),
-      selector: response => {
-        if (!response.ok) {
-          throw new Error(`Unable to create season (${response.status}).`);
-        }
-        return response.json();
-      }
-    });
+    return this.http.post<Season>('/api/seasons', season).pipe(
+      withApiError('Unable to create season'),
+    );
   }
 
   updateSeason(
     seasonId: string,
     updates: Partial<Pick<Season, 'program' | 'name'>>
   ): Observable<Season> {
-    return fromFetch(`/api/seasons/${encodeURIComponent(seasonId)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-      selector: response => {
-        if (!response.ok) {
-          throw new Error(`Unable to update season (${response.status}).`);
-        }
-        return response.json();
-      }
-    });
+    return this.http.patch<Season>(`/api/seasons/${encodeURIComponent(seasonId)}`, updates).pipe(
+      withApiError('Unable to update season'),
+    );
   }
 
   deleteSeason(seasonId: string): Observable<void> {
-    return fromFetch(`/api/seasons/${encodeURIComponent(seasonId)}`, {
-      method: 'DELETE',
-      selector: response => {
-        if (!response.ok) {
-          throw new Error(`Unable to delete season (${response.status}).`);
-        }
-        return response.text().then(() => undefined);
-      }
-    });
+    return this.http.delete<void>(`/api/seasons/${encodeURIComponent(seasonId)}`).pipe(
+      map(() => undefined),
+      withApiError('Unable to delete season'),
+    );
   }
 
 }

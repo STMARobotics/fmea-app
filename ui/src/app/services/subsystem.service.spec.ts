@@ -1,17 +1,21 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
 import { SubsystemService } from './subsystem.service';
 
 describe('SubsystemService', () => {
   let service: SubsystemService;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     service = TestBed.inject(SubsystemService);
+    http = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    http.verify();
   });
 
   it('requests subsystems for the given team', async () => {
@@ -21,20 +25,15 @@ describe('SubsystemService', () => {
       seasonId: 'season-1',
       name: 'Drive train',
     }];
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(subsystems) });
-    vi.stubGlobal('fetch', fetchMock);
-
-    await expect(firstValueFrom(service.getSubsystemsForTeam('team-1'))).resolves.toEqual(subsystems);
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/subsystems/team-1',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    const result = firstValueFrom(service.getSubsystemsForTeam('team-1'));
+    http.expectOne('/api/subsystems/team-1').flush(subsystems);
+    await expect(result).resolves.toEqual(subsystems);
   });
 
   it('reports an HTTP error when subsystems cannot be loaded', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
-
-    await expect(firstValueFrom(service.getSubsystemsForTeam('team-1')))
+    const result = firstValueFrom(service.getSubsystemsForTeam('team-1'));
+    http.expectOne('/api/subsystems/team-1').flush({}, { status: 503, statusText: 'Unavailable' });
+    await expect(result)
       .rejects.toThrow('Unable to load subsystems (503).');
   });
 
@@ -45,31 +44,20 @@ describe('SubsystemService', () => {
       teamId: 'team-1',
       ...request,
     };
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(subsystem),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
-    await expect(firstValueFrom(service.createSubsystem('team-1', request)))
-      .resolves.toEqual(subsystem);
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/subsystems/team-1',
-      expect.objectContaining({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-        signal: expect.any(AbortSignal),
-      }),
-    );
+    const result = firstValueFrom(service.createSubsystem('team-1', request));
+    const apiRequest = http.expectOne('/api/subsystems/team-1');
+    expect(apiRequest.request.method).toBe('POST');
+    expect(apiRequest.request.body).toEqual(request);
+    apiRequest.flush(subsystem);
+    await expect(result).resolves.toEqual(subsystem);
   });
 
   it('reports an HTTP error when a subsystem cannot be created', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 400 }));
-
-    await expect(firstValueFrom(service.createSubsystem('team-1', {
+    const result = firstValueFrom(service.createSubsystem('team-1', {
       seasonId: 'season-1',
       name: 'Arm',
-    }))).rejects.toThrow('Unable to create subsystem (400).');
+    }));
+    http.expectOne('/api/subsystems/team-1').flush({}, { status: 400, statusText: 'Bad Request' });
+    await expect(result).rejects.toThrow('Unable to create subsystem (400).');
   });
 });

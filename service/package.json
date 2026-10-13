@@ -5,10 +5,12 @@
   "main": "src/handler.ts",
   "scripts": {
     "build": "tsc",
+    "test": "node --import tsx --test src/auth/*.test.ts",
     "dev": "node --env-file-if-exists=.env --import tsx src/local-server.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1149.0"
+    "@aws-sdk/client-dynamodb": "^3.1149.0",
+    "google-auth-library": "^11.2.0"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

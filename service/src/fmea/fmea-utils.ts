@@ -14,6 +14,14 @@ export type HttpEvent = {
   body?: string | null;
   pathParameters?: Record<string, string | undefined> | null;
   queryStringParameters?: Record<string, string | undefined> | null;
+  requestContext?: {
+    authorizer?: {
+      lambda?: {
+        email?: string;
+        name?: string;
+      };
+    };
+  };
 };
 export type FmeaRequest = Record<string, unknown>;
 export type ValidFmeaRequest = {

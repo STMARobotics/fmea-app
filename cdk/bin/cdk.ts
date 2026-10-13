@@ -19,6 +19,8 @@ const certStack = new CertificateStack(app, prodConfig.certificateStackName, {
 // 2. Backend stack in us-east-2
 const backendStack = new BackendStack(app, prodConfig.backendStackName, {
   env: { account, region: 'us-east-2' },
+  googleClientId: prodConfig.googleClientId,
+  allowedDomain: prodConfig.allowedDomain,
 });
 
 // 3. Frontend stack in us-east-2, passing the us-east-1 certificate and backend HTTP API
@@ -29,4 +31,6 @@ new FrontendStack(app, prodConfig.frontendStackName, {
   hostedZoneId: prodConfig.hostedZoneId,
   httpApi: backendStack.httpApi,
   certificate: certStack.certificate,
+  googleClientId: prodConfig.googleClientId,
+  allowedDomain: prodConfig.allowedDomain,
 });

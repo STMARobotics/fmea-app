@@ -1,0 +1,48 @@
+:host {
+  display: flex;
+  min-width: 40px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.google-sign-in-button {
+  min-width: 190px;
+  min-height: 40px;
+}
+
+.account-trigger {
+  width: 40px;
+  height: 40px;
+  padding: 3px;
+  border: 1px solid #626a73;
+  border-radius: 50%;
+  color: #f5f7f8;
+  overflow: hidden;
+}
+
+.account-trigger img,
+.account-trigger span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #315846;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.account-details {
+  display: grid;
+  gap: 4px;
+  max-width: 260px;
+  padding: 12px 16px;
+}
+
+.account-details span {
+  color: #626a73;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

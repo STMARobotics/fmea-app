@@ -66,8 +66,8 @@ describe('BannerComponent', () => {
 
     const teamOptions = await teamSelect.getOptions();
     expect(await Promise.all(teamOptions.map(option => option.getText()))).toEqual([
-      'FTC 123 Robotics',
-      'FRC 456 Mechanics',
+      'FTC 123 – Robotics',
+      'FRC 456 – Mechanics',
     ]);
     expect(fixture.nativeElement.querySelectorAll('mat-form-field').length).toBe(1);
 
@@ -112,7 +112,7 @@ describe('BannerComponent', () => {
     const [, seasonSelect] = await loader.getAllHarnesses(MatSelectHarness);
     await seasonSelect.open();
     const options = await seasonSelect.getOptions();
-    expect(await Promise.all(options.map(option => option.getText()))).toEqual(['FTC Into the Deep']);
+    expect(await Promise.all(options.map(option => option.getText()))).toEqual(['Into the Deep']);
   });
 
   it('clears the season only when the team changes and handles null selections', () => {

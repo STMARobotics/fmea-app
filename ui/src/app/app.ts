@@ -1,16 +1,19 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { BannerComponent } from './banner/banner.component';
+import { AuthControlComponent } from './auth/auth-control.component';
+import { GoogleAuthService } from './auth/google-auth.service';
 import { FmeaSelectionService } from './services/fmea-selection.service';
 import { NavigationHistoryService } from './services/navigation-history.service';
 
 @Component({
-  imports: [BannerComponent, RouterOutlet],
+  imports: [AuthControlComponent, BannerComponent, RouterLink, RouterOutlet],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
 })
 export class App {
+  readonly auth = inject(GoogleAuthService);
   private readonly router = inject(Router);
   readonly navigationHistory = inject(NavigationHistoryService);
 

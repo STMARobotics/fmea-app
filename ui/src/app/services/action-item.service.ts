@@ -1,7 +1,8 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from "@angular/core";
 import { Observable, tap } from "rxjs";
-import { fromFetch } from "rxjs/fetch";
 import { FmeaService } from "./fmea.service";
+import { withApiError } from './api-error';
 
 export type ActionItemStatus = 'not_started' | 'in_progress' | 'assembly_note' | 'complete';
 
@@ -21,37 +22,20 @@ export type CreateActionItemRequest = Pick<ActionItem, 'description'>;
   providedIn: 'root'
 })
 export class ActionItemService {
+  private readonly http = inject(HttpClient);
   private readonly fmeaService = inject(FmeaService);
 
   createActionItem(fmeaEntryId: string, request: CreateActionItemRequest): Observable<ActionItem> {
-    return fromFetch<ActionItem>(`/api/fmea/${encodeURIComponent(fmeaEntryId)}/action-items`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-      selector: response => {
-        if (!response.ok) {
-          throw new Error(`Unable to create action item (${response.status}).`);
-        }
-        return response.json();
-      },
-    }).pipe(tap(() => this.fmeaService.notifyFmeaEntriesChanged()));
+    return this.http.post<ActionItem>(`/api/fmea/${encodeURIComponent(fmeaEntryId)}/action-items`, request).pipe(
+      withApiError('Unable to create action item'),
+      tap(() => this.fmeaService.notifyFmeaEntriesChanged()),
+    );
   }
 
   updateActionItem(actionItemId: string, partialActionItem: PartialActionItem): Observable<ActionItem> {
-    return fromFetch<ActionItem>(`/api/action-item/${encodeURIComponent(actionItemId)}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(partialActionItem),
-      selector: response => {
-        if (!response.ok) {
-          throw new Error(`Unable to update action item (${response.status}).`);
-        }
-        return response.json();
-      },
-    }).pipe(tap(() => this.fmeaService.notifyFmeaEntriesChanged()));
+    return this.http.patch<ActionItem>(`/api/action-item/${encodeURIComponent(actionItemId)}`, partialActionItem).pipe(
+      withApiError('Unable to update action item'),
+      tap(() => this.fmeaService.notifyFmeaEntriesChanged()),
+    );
   }
 }

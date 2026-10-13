@@ -28,7 +28,10 @@ jobs:
         run: npm ci
 
       - name: Build Monorepo Workspaces
-        run: npm run build -w ui
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v6

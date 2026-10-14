@@ -16,7 +16,7 @@ npm install
 Create a `service/.env` file, and add:
 ```
 TABLE_NAME=<dynamotablename>
-GOOGLE_CLIENT_ID=574028865613-b8apa4bcpai776gtsqm14mdej3iubeha.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=574028865613-3vo70leeg25j9rnbnktle8fpbm4t01il.apps.googleusercontent.com
 ALLOWED_DOMAIN=stmarobotics.org
 ```
 

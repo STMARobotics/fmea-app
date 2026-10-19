@@ -9,6 +9,11 @@ test('all HTTP API routes require the Google Workspace authorizer', () => {
 		allowedDomain: 'example.org',
 	});
 	const template = Template.fromStack(stack);
+	const functions = Object.values(template.findResources('AWS::Lambda::Function'));
+	expect(functions.length).toBeGreaterThan(0);
+	for (const lambdaFunction of functions) {
+		expect(lambdaFunction.Properties.Architectures).toEqual(['arm64']);
+	}
 	const routes = Object.values(template.findResources('AWS::ApiGatewayV2::Route'));
 
 	expect(routes.length).toBeGreaterThan(0);

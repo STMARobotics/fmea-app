@@ -163,6 +163,7 @@ export class BackendStack extends cdk.Stack {
 
     const authorizerHandler = new nodejs.NodejsFunction(this, 'GoogleWorkspaceAuthorizer', {
       runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
       entry: path.join(__dirname, '../../service/src/auth/authorizer.handler.ts'),
       handler: 'handler',
       environment: {
@@ -293,6 +294,7 @@ export class BackendStack extends cdk.Stack {
   ): nodejs.NodejsFunction {
     return new nodejs.NodejsFunction(this, id, {
       runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
       entry: path.join(__dirname, `../../service/src/season/${handlerFile}`),
       handler: 'handler',
       environment: {
@@ -309,6 +311,7 @@ export class BackendStack extends cdk.Stack {
   ): nodejs.NodejsFunction {
     return new nodejs.NodejsFunction(this, id, {
       runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
       entry: path.join(__dirname, `../../service/src/team/${handlerFile}`),
       handler: 'handler',
       environment: {
@@ -325,6 +328,7 @@ export class BackendStack extends cdk.Stack {
   ): nodejs.NodejsFunction {
     return new nodejs.NodejsFunction(this, id, {
       runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
       entry: path.join(__dirname, `../../service/src/subsystem/${handlerFile}`),
       handler: 'handler',
       environment: {
@@ -341,6 +345,7 @@ export class BackendStack extends cdk.Stack {
   ): nodejs.NodejsFunction {
     return new nodejs.NodejsFunction(this, id, {
       runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
       entry: path.join(__dirname, `../../service/src/fmea/${handlerFile}`),
       handler: 'handler',
       environment: {

@@ -9,6 +9,7 @@ import { BehaviorSubject, catchError, combineLatest, map, Observable, of, shareR
 import { SeasonService } from "../services/season.service";
 import { FmeaEntry, FmeaService } from "../services/fmea.service";
 import { FmeaSelectionService } from "../services/fmea-selection.service";
+import { AuthControlComponent } from "../auth/auth-control.component";
 
 type EventReadiness = {
   level: 'not-event-ready' | 'event-ready' | 'einstein-ready' | 'unavailable';
@@ -21,6 +22,7 @@ type EventReadiness = {
     MatInputModule,
     MatSelectModule,
     MatFormFieldModule,
+    AuthControlComponent,
     RouterLink,
     RouterLinkActive,
   ],

@@ -1,15 +1,15 @@
-<header class="app-header">
-  <a class="app-brand" routerLink="/fmea" aria-label="FMEA home">FMEA</a>
-  <app-auth-control />
-</header>
-
 @if (auth.isAuthenticated()) {
   @if (!isAboutFmeaPage) {
     <banner (teamChange)="onTeamChange($event)" (seasonChange)="onSeasonChange($event)"></banner>
+  } @else {
+    <div class="about-account-control">
+      <app-auth-control />
+    </div>
   }
   <router-outlet></router-outlet>
 } @else {
   <main class="auth-gate" aria-live="polite">
+    <app-auth-control />
     @if (auth.accessDenied()) {
       <h1>Access denied</h1>
       <p>Sign in with an account from your Google Workspace domain.</p>

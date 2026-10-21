@@ -54,6 +54,8 @@ describe('App', () => {
     expect(router.url).toBe('/fmea');
     expect(compiled.querySelector('router-outlet')).toBeTruthy();
     expect(compiled.querySelector('banner')).toBeTruthy();
+    expect(compiled.querySelector('.app-header')).toBeNull();
+    expect(compiled.querySelector('banner app-auth-control')).toBeTruthy();
     expect(compiled.querySelector('app-fmea-page')).toBeTruthy();
     expect(compiled.querySelector('app-fmea-page banner')).toBeNull();
     expect(compiled.querySelector('.fmea-grid')).toBeNull();
@@ -91,6 +93,7 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('app-fmea-info-page h1')?.textContent).toBe('What is FMEA?');
     expect(fixture.nativeElement.querySelector('app-fmea-info-page')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('banner')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.about-account-control app-auth-control')).toBeTruthy();
   });
 
   it('returns to the page that opened the FMEA information page using app navigation', async () => {

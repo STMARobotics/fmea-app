@@ -6,13 +6,17 @@ describe('GoogleAuthService', () => {
   let credentialCallback: ((response: { credential: string }) => void) | undefined;
   let identity: NonNullable<Window['google']>;
 
-  const createCredential = (claims: Record<string, string>): string => {
-    const encoded = btoa(JSON.stringify(claims)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const createCredential = (claims: Record<string, string | number>): string => {
+    const encoded = btoa(JSON.stringify({
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      ...claims,
+    })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     return `header.${encoded}.signature`;
   };
 
   beforeEach(() => {
     credentialCallback = undefined;
+    sessionStorage.removeItem('fmea.googleIdToken');
     identity = {
       accounts: {
         id: {
@@ -33,6 +37,7 @@ describe('GoogleAuthService', () => {
 
   afterEach(() => {
     delete window.google;
+    sessionStorage.removeItem('fmea.googleIdToken');
     vi.unstubAllGlobals();
   });
 
@@ -70,6 +75,44 @@ describe('GoogleAuthService', () => {
       picture: 'https://example.org/avatar.png',
     });
     expect(service.isAuthenticated()).toBe(true);
+    expect(sessionStorage.getItem('fmea.googleIdToken')).toBe(token);
+  });
+
+  it('restores a valid signed-in session after a page refresh', async () => {
+    await service.renderSignInButton(document.createElement('div'));
+    const token = createCredential({
+      sub: 'google-sub',
+      hd: 'example.org',
+      email: 'member@example.org',
+      name: 'Workspace Member',
+    });
+    credentialCallback?.({ credential: token });
+
+    const refreshedService = new GoogleAuthService();
+    await refreshedService.renderSignInButton(document.createElement('div'));
+
+    expect(refreshedService.token).toBe(token);
+    expect(refreshedService.user()).toEqual({
+      sub: 'google-sub',
+      email: 'member@example.org',
+      name: 'Workspace Member',
+      picture: '',
+    });
+    expect(refreshedService.isAuthenticated()).toBe(true);
+  });
+
+  it('discards an expired saved session', async () => {
+    sessionStorage.setItem('fmea.googleIdToken', createCredential({
+      sub: 'google-sub',
+      hd: 'example.org',
+      exp: Math.floor(Date.now() / 1000) - 1,
+    }));
+
+    await service.renderSignInButton(document.createElement('div'));
+
+    expect(service.token).toBeNull();
+    expect(service.isAuthenticated()).toBe(false);
+    expect(sessionStorage.getItem('fmea.googleIdToken')).toBeNull();
   });
 
   it('denies missing and outside-domain hosted-domain claims', async () => {

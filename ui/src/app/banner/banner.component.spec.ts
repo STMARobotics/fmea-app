@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { provideRouter } from '@angular/router';
@@ -7,6 +8,7 @@ import { BannerComponent } from './banner.component';
 import { SeasonService } from '../services/season.service';
 import { TeamService } from '../services/team.service';
 import { FmeaEntry, FmeaService } from '../services/fmea.service';
+import { GoogleAuthService } from '../auth/google-auth.service';
 
 describe('BannerComponent', () => {
   let fixture: ComponentFixture<BannerComponent>;
@@ -41,6 +43,11 @@ describe('BannerComponent', () => {
   beforeEach(async () => {
     localStorage.removeItem('fmea.selectedTeamId');
     localStorage.removeItem('fmea.selectedSeasonId');
+    const auth = {
+      user: signal({ sub: 'google-sub', email: 'member@example.org', name: 'Workspace Member', picture: '' }),
+      renderSignInButton: vi.fn(),
+      signOut: vi.fn(),
+    };
     getEntries = vi.fn(() => of([]));
     fmeaEntriesChanged = new Subject<void>();
     await TestBed.configureTestingModule({
@@ -50,6 +57,7 @@ describe('BannerComponent', () => {
         { provide: TeamService, useValue: { getAllTeams: () => of(teams) } },
         { provide: SeasonService, useValue: { getAllSeasons: () => of(seasons) } },
         { provide: FmeaService, useValue: { getFmeaEntriesForTeam: getEntries, fmeaEntriesChanged$: fmeaEntriesChanged } },
+        { provide: GoogleAuthService, useValue: auth },
       ],
     }).compileComponents();
 
@@ -90,6 +98,10 @@ describe('BannerComponent', () => {
         ['FMEA table', '/fmea'],
         ['Action items', '/action-items'],
       ]);
+  });
+
+  it('places the account control at the right edge of the banner', () => {
+    expect(fixture.nativeElement.querySelector('.banner > app-auth-control')).toBeTruthy();
   });
 
   it('filters seasons by team program and emits non-null selections', async () => {

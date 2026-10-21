@@ -21,6 +21,7 @@ type GoogleClaims = {
   email?: string;
   name?: string;
   picture?: string;
+  exp?: number;
 };
 
 export type GoogleAccount = {
@@ -38,6 +39,8 @@ declare global {
 
 @Injectable({ providedIn: 'root' })
 export class GoogleAuthService {
+  private static readonly SESSION_TOKEN_KEY = 'fmea.googleIdToken';
+
   readonly user = signal<GoogleAccount | null>(null);
   readonly accessDenied = signal(false);
   readonly configurationError = signal(false);
@@ -68,7 +71,7 @@ export class GoogleAuthService {
   }
 
   signOut(): void {
-    this.idToken = null;
+    this.clearSession();
     this.user.set(null);
     this.accessDenied.set(false);
     this.signInError.set(false);
@@ -79,7 +82,7 @@ export class GoogleAuthService {
     if (status === 401) {
       this.signOut();
     } else if (status === 403) {
-      this.idToken = null;
+      this.clearSession();
       this.accessDenied.set(true);
     }
   }
@@ -110,6 +113,7 @@ export class GoogleAuthService {
       throw new Error('Google authentication configuration is incomplete.');
     }
     this.allowedDomain = config.allowedDomain;
+    this.restoreSession();
 
     if (!window.google) {
       await new Promise<void>((resolve, reject) => {
@@ -137,17 +141,41 @@ export class GoogleAuthService {
 
   private acceptCredential(credential: string): void {
     try {
-      const encodedPayload = credential.split('.')[1];
-      if (!encodedPayload) {
-        throw new Error('Malformed ID token.');
-      }
-      const base64 = encodedPayload.replace(/-/g, '+').replace(/_/g, '/');
-      const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
-      const claims = JSON.parse(new TextDecoder().decode(bytes)) as GoogleClaims;
+      const claims = this.claimsFromCredential(credential);
       if (!claims.sub || claims.hd !== this.allowedDomain) {
-        this.idToken = null;
+        this.clearSession();
         this.user.set(null);
         this.accessDenied.set(true);
+        return;
+      }
+
+      this.idToken = credential;
+      sessionStorage.setItem(GoogleAuthService.SESSION_TOKEN_KEY, credential);
+      this.user.set({
+        sub: claims.sub,
+        email: claims.email ?? '',
+        name: claims.name ?? claims.email ?? '',
+        picture: claims.picture ?? '',
+      });
+      this.accessDenied.set(false);
+      this.signInError.set(false);
+    } catch {
+      this.clearSession();
+      this.user.set(null);
+      this.signInError.set(true);
+    }
+  }
+
+  private restoreSession(): void {
+    const credential = sessionStorage.getItem(GoogleAuthService.SESSION_TOKEN_KEY);
+    if (!credential) {
+      return;
+    }
+
+    try {
+      const claims = this.claimsFromCredential(credential);
+      if (!claims.sub || claims.hd !== this.allowedDomain) {
+        sessionStorage.removeItem(GoogleAuthService.SESSION_TOKEN_KEY);
         return;
       }
 
@@ -158,12 +186,31 @@ export class GoogleAuthService {
         name: claims.name ?? claims.email ?? '',
         picture: claims.picture ?? '',
       });
-      this.accessDenied.set(false);
-      this.signInError.set(false);
     } catch {
-      this.idToken = null;
-      this.user.set(null);
-      this.signInError.set(true);
+      sessionStorage.removeItem(GoogleAuthService.SESSION_TOKEN_KEY);
     }
+  }
+
+  private claimsFromCredential(credential: string): GoogleClaims {
+    const encodedPayload = credential.split('.')[1];
+    if (!encodedPayload) {
+      throw new Error('Malformed ID token.');
+    }
+    const base64 = encodedPayload.replace(/-/g, '+').replace(/_/g, '/');
+    const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+    const claims = JSON.parse(new TextDecoder().decode(bytes)) as GoogleClaims;
+    if (
+      typeof claims.exp !== 'number' ||
+      !Number.isFinite(claims.exp) ||
+      claims.exp <= Math.floor(Date.now() / 1000)
+    ) {
+      throw new Error('Expired ID token.');
+    }
+    return claims;
+  }
+
+  private clearSession(): void {
+    this.idToken = null;
+    sessionStorage.removeItem(GoogleAuthService.SESSION_TOKEN_KEY);
   }
 }

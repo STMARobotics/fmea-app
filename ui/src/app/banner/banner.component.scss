@@ -189,6 +189,10 @@ mat-form-field {
     justify-content: flex-end;
   }
 
+  .banner > app-auth-control {
+    align-self: flex-end;
+  }
+
   .page-nav {
     flex-wrap: wrap;
     justify-content: flex-end;

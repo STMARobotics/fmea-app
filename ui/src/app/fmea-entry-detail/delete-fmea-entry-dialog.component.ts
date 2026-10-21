@@ -3,6 +3,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 
 interface DeleteFmeaEntryDialogData {
   failureMode: string;
+  itemType?: string;
 }
 
 @Component({

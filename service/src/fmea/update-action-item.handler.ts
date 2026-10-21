@@ -27,6 +27,8 @@ export const handler = async (event: HttpEvent) => {
     actionIndex < 0 ||
     request.fmeaEntryId !== fmeaId ||
     typeof request.description !== 'string' ||
+    request.description.trim().length === 0 ||
+    (request.expectedDescription !== undefined && typeof request.expectedDescription !== 'string') ||
     !isActionItemStatus(request.status)
   ) {
     return jsonResponse(400, { message: 'A valid action item ID, FMEA entry ID, description, and status are required.' });
@@ -42,8 +44,8 @@ export const handler = async (event: HttpEvent) => {
     await dynamoDB.send(new UpdateItemCommand({
       TableName: getTableName(),
       Key: key,
-      UpdateExpression: `SET #actionItems[${actionIndex}].#status = :status, #actionItems[${actionIndex}].#actionLastUpdated = :lastUpdated, #lastUpdated = :lastUpdated`,
-      ConditionExpression: `attribute_exists(#actionItems[${actionIndex}].#description) AND #actionItems[${actionIndex}].#description = :description`,
+      UpdateExpression: `SET #actionItems[${actionIndex}].#description = :description, #actionItems[${actionIndex}].#status = :status, #actionItems[${actionIndex}].#actionLastUpdated = :lastUpdated, #lastUpdated = :lastUpdated`,
+      ConditionExpression: `attribute_exists(#actionItems[${actionIndex}].#description) AND #actionItems[${actionIndex}].#description = :expectedDescription`,
       ExpressionAttributeNames: {
         '#actionItems': 'actionItems',
         '#status': 'status',
@@ -53,13 +55,14 @@ export const handler = async (event: HttpEvent) => {
       },
       ExpressionAttributeValues: {
         ':status': { S: request.status },
+        ':description': { S: request.description.trim() },
+        ':expectedDescription': { S: request.expectedDescription ?? request.description },
         ':lastUpdated': { S: now },
-        ':description': { S: request.description },
       },
     }));
     return jsonResponse(200, {
       id: actionItemId,
-      description: request.description,
+      description: request.description.trim(),
       status: request.status,
       fmeaEntryId: fmeaId,
       lastUpdatedAt: now,

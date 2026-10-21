@@ -113,37 +113,85 @@
 
           <section class="detail-section">
             <div class="entry-actions page-nav">
-              <h2>Action items <span class="count">{{ currentEntry(entry).actionItems.length }}</span></h2>
-              <button class="action-item-toggle" type="button" (click)="toggleActionItemForm()">
-                {{ addingActionItem ? 'Cancel' : 'Add action item' }}
-              </button>
+              <h2>Action items <span class="count">{{ editingActionItems ? actionItemDrafts.length : currentEntry(entry).actionItems.length }}</span></h2>
+              @if (!editingActionItems) {
+                <button
+                  class="action-item-toggle"
+                  type="button"
+                  (click)="startEditingActionItems(entry)"
+                >
+                  Edit action items
+                </button>
+              }
             </div>
-            @if (addingActionItem) {
-              <div class="entry-actions action-item-form">
-                <label class="field">
-                  <span>Action item description</span>
-                  <textarea
-                    [value]="newActionItemDescription"
-                    (input)="setActionItemDescription($event)"
-                    rows="2"
-                    required
-                  ></textarea>
-                </label>
-                <div class="entry-actions">
-                  <button
-                    type="button"
-                    [disabled]="creatingActionItem || !newActionItemDescription.trim()"
-                    (click)="createActionItem(entry)"
-                  >
-                    {{ creatingActionItem ? 'Creating…' : 'Create action item' }}
-                  </button>
-                </div>
-              </div>
-            }
             @if (actionItemError) {
               <p class="message error" role="alert">{{ actionItemError }}</p>
             }
-            @if (currentEntry(entry).actionItems.length > 0) {
+            @if (editingActionItems) {
+              <ul class="action-items">
+                @for (actionItem of actionItemDrafts; track actionItem.clientId) {
+                  <li>
+                    <div class="action-item-edit-fields">
+                      <input
+                        type="text"
+                        [value]="actionItem.description"
+                        (input)="setActionItemDescription(actionItem.clientId, $event)"
+                        aria-label="Action item description"
+                        required
+                      >
+                      <select
+                        class="status"
+                        [class]="'status ' + actionItem.status"
+                        [value]="actionItem.status"
+                        (change)="setActionItemStatus(actionItem.clientId, $event)"
+                        aria-label="Action item status"
+                      >
+                        <option value="not_started">Not started</option>
+                        @if (actionItem.id !== null) {
+                          <option value="in_progress">In progress</option>
+                        }
+                        <option value="assembly_note">Assembly note</option>
+                        @if (actionItem.id !== null) {
+                          <option value="complete">Complete</option>
+                        }
+                      </select>
+                    </div>
+                    <button
+                      class="action-item-delete"
+                      type="button"
+                      [attr.aria-label]="'Delete action item: ' + (actionItem.description || 'new action item')"
+                      [disabled]="savingActionItems"
+                      (click)="removeActionItemDraft(actionItem.clientId)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" />
+                      </svg>
+                    </button>
+                  </li>
+                }
+              </ul>
+              <button
+                class="action-item-add"
+                type="button"
+                aria-label="Add action item"
+                [disabled]="savingActionItems"
+                (click)="addActionItemDraft()"
+              >+ Add action item</button>
+              <div class="entry-actions action-item-save-controls">
+                <button
+                  type="button"
+                  [disabled]="savingActionItems || hasEmptyActionItemDrafts()"
+                  (click)="saveActionItems(entry)"
+                >
+                  {{ savingActionItems ? 'Saving…' : 'Save' }}
+                </button>
+                <button
+                  type="button"
+                  [disabled]="savingActionItems"
+                  (click)="cancelEditingActionItems()"
+                >Cancel</button>
+              </div>
+            } @else if (currentEntry(entry).actionItems.length > 0) {
               <ul class="action-items">
                 @for (actionItem of currentEntry(entry).actionItems; track actionItem.id) {
                   <li>

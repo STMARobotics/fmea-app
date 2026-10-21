@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
-import { ActionItemService } from '../services/action-item.service';
+import { ActionItemService, EditableActionItem } from '../services/action-item.service';
 import { FmeaEntry, FmeaService } from '../services/fmea.service';
 import { NavigationHistoryService } from '../services/navigation-history.service';
 import { FmeaEntryDetailComponent } from './fmea-entry-detail.component';
@@ -18,12 +18,14 @@ describe('FmeaEntryDetailComponent', () => {
     deleteFmeaEntry: vi.fn(() => of(undefined)),
   };
   const actionItemServiceMock = {
-    createActionItem: vi.fn(() => of({
-      id: 'entry-1:1',
-      description: 'Add temperature monitoring.',
-      status: 'not_started' as const,
-      fmeaEntryId: 'entry-1',
-      lastUpdatedAt: new Date('2026-10-11'),
+    replaceActionItems: vi.fn((id: string, _expectedLastUpdatedAt: string, items: EditableActionItem[]) => of({
+      actionItems: items.map((item, index) => ({
+        ...item,
+        id: `${id}:${index}`,
+        fmeaEntryId: id,
+        lastUpdatedAt: new Date('2026-10-12'),
+      })),
+      lastUpdatedAt: new Date('2026-10-12'),
     })),
   };
   const routerMock = {
@@ -50,7 +52,7 @@ describe('FmeaEntryDetailComponent', () => {
     det: 9,
     lastUpdatedAt: new Date('2026-10-04'),
     actionItems: [{
-      id: 'action-1',
+      id: 'entry-1:0',
       description: 'Add wheel guards.',
       status: 'not_started',
       fmeaEntryId: 'entry-1',
@@ -59,6 +61,7 @@ describe('FmeaEntryDetailComponent', () => {
   };
 
   beforeEach(async () => {
+    dialogMock.open.mockReturnValue({ afterClosed: () => of(false) });
     await TestBed.configureTestingModule({
       imports: [FmeaEntryDetailComponent],
       providers: [
@@ -105,45 +108,154 @@ describe('FmeaEntryDetailComponent', () => {
     expect(navigationHistoryMock.navigateBack).toHaveBeenCalledWith('/fmea');
   });
 
-  it('creates an action item and adds it to the list', async () => {
+  it('stages a new action item and saves the entire list together', async () => {
     const element = fixture.nativeElement as HTMLElement;
     element.querySelector<HTMLButtonElement>('.action-item-toggle')?.click();
     fixture.detectChanges();
 
-    const description = element.querySelector<HTMLTextAreaElement>('.action-item-form textarea')!;
+    expect(element.querySelector('.action-item-toggle')).toBeNull();
+    expect(element.querySelector('[formControlName="failureMode"]')).toBeNull();
+    expect(element.querySelectorAll<HTMLInputElement>('.action-items input')).toHaveLength(1);
+    expect(element.querySelectorAll<HTMLSelectElement>('.action-items select')).toHaveLength(1);
+    expect(element.querySelector<HTMLButtonElement>('.action-item-add')?.textContent).toContain('+ Add action item');
+    element.querySelector<HTMLButtonElement>('.action-item-add')?.click();
+    fixture.detectChanges();
+    const descriptions = element.querySelectorAll<HTMLInputElement>('.action-items input');
+    const description = descriptions[descriptions.length - 1];
     description.value = '  Add temperature monitoring.  ';
     description.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    element.querySelector<HTMLButtonElement>('.action-item-form button')?.click();
+
+    expect(actionItemServiceMock.replaceActionItems).not.toHaveBeenCalled();
+    element.querySelector<HTMLButtonElement>('.action-item-save-controls button')?.click();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(actionItemServiceMock.createActionItem).toHaveBeenCalledWith('entry-1', {
-      description: 'Add temperature monitoring.',
-    });
+    expect(actionItemServiceMock.replaceActionItems).toHaveBeenCalledWith(
+      'entry-1',
+      '2026-10-04T00:00:00.000Z',
+      [
+        { id: 'entry-1:0', description: 'Add wheel guards.', status: 'not_started' },
+        { id: null, description: 'Add temperature monitoring.', status: 'not_started' },
+      ],
+    );
     expect(element.textContent).toContain('Add temperature monitoring.');
     expect(element.querySelector('.count')?.textContent).toBe('2');
-    expect(element.querySelector('.action-item-form')).toBeNull();
+    expect(element.querySelector('.action-items input')).toBeNull();
   });
 
-  it('shows an error when an action item cannot be created', async () => {
-    actionItemServiceMock.createActionItem.mockReturnValue(
-      throwError(() => new Error('Unable to create action item (503).')),
+  it('allows a new action item to be created as an assembly note', async () => {
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.action-item-toggle')?.click();
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.action-item-add')?.click();
+    fixture.detectChanges();
+    const description = element.querySelectorAll<HTMLInputElement>('.action-items input')[1];
+    description.value = 'Record assembly guidance.';
+    description.dispatchEvent(new Event('input'));
+    const status = element.querySelectorAll<HTMLSelectElement>('.action-items select')[1];
+    status.value = 'assembly_note';
+    status.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('.action-item-save-controls button')?.click();
+    await fixture.whenStable();
+
+    expect(actionItemServiceMock.replaceActionItems).toHaveBeenCalledWith(
+      'entry-1',
+      '2026-10-04T00:00:00.000Z',
+      [
+        { id: 'entry-1:0', description: 'Add wheel guards.', status: 'not_started' },
+        { id: null, description: 'Record assembly guidance.', status: 'assembly_note' },
+      ],
+    );
+  });
+
+  it('opens every item for editing and saves description and status changes together', async () => {
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.action-item-toggle')?.click();
+    fixture.detectChanges();
+    expect(element.querySelector('[formControlName="failureMode"]')).toBeNull();
+    const description = element.querySelector<HTMLInputElement>('.action-items input')!;
+    const statusChip = element.querySelector<HTMLSelectElement>('.action-items select')!;
+    const deleteButton = element.querySelector<HTMLButtonElement>('.action-item-delete')!;
+    expect(statusChip.classList).toContain('status');
+    expect(statusChip.parentElement?.nextElementSibling).toBe(deleteButton);
+    description.value = 'Install reinforced wheel guards.';
+    description.dispatchEvent(new Event('input'));
+    const status = element.querySelector<HTMLSelectElement>('.action-items select')!;
+    status.value = 'in_progress';
+    status.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('.action-item-save-controls button')?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(actionItemServiceMock.replaceActionItems).toHaveBeenCalledWith(
+      'entry-1',
+      '2026-10-04T00:00:00.000Z',
+      [{ id: 'entry-1:0', description: 'Install reinforced wheel guards.', status: 'in_progress' }],
+    );
+    expect(element.textContent).toContain('Install reinforced wheel guards.');
+    expect(element.querySelector('.action-items .status')?.textContent?.trim()).toBe('in progress');
+  });
+
+  it('stages deletion and discards it when editing is cancelled', () => {
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.action-item-toggle')?.click();
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('.action-item-delete')?.click();
+    fixture.detectChanges();
+
+    expect(element.querySelector('.count')?.textContent).toBe('0');
+    element.querySelector<HTMLButtonElement>('.action-item-save-controls button:last-child')?.click();
+    fixture.detectChanges();
+
+    expect(actionItemServiceMock.replaceActionItems).not.toHaveBeenCalled();
+    expect(element.querySelector('.count')?.textContent).toBe('1');
+    expect(element.textContent).toContain('Add wheel guards.');
+  });
+
+  it('saves staged action-item deletion', async () => {
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.action-item-toggle')?.click();
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('.action-item-delete')?.click();
+    fixture.detectChanges();
+    element.querySelector<HTMLButtonElement>('.action-item-save-controls button')?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(actionItemServiceMock.replaceActionItems).toHaveBeenCalledWith(
+      'entry-1',
+      '2026-10-04T00:00:00.000Z',
+      [],
+    );
+    expect(element.querySelector('.count')?.textContent).toBe('0');
+    expect(element.textContent).toContain('No action items have been added.');
+  });
+
+  it('keeps staged action-item changes when saving fails', async () => {
+    actionItemServiceMock.replaceActionItems.mockReturnValue(
+      throwError(() => new Error('Unable to save action items (503).')),
     );
     const element = fixture.nativeElement as HTMLElement;
     element.querySelector<HTMLButtonElement>('.action-item-toggle')?.click();
     fixture.detectChanges();
-    const description = element.querySelector<HTMLTextAreaElement>('.action-item-form textarea')!;
+    element.querySelector<HTMLButtonElement>('.action-item-add')?.click();
+    fixture.detectChanges();
+    const description = element.querySelectorAll<HTMLInputElement>('.action-items input')[1];
     description.value = 'Add temperature monitoring.';
     description.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    element.querySelector<HTMLButtonElement>('.action-item-form button')?.click();
+    element.querySelector<HTMLButtonElement>('.action-item-save-controls button')?.click();
     await fixture.whenStable();
     fixture.detectChanges();
 
     expect(element.querySelector('[role="alert"]')?.textContent).toContain(
-      'Unable to create action item (503).',
+      'Unable to save action items (503).',
     );
+    expect(element.querySelectorAll('.action-items input')).toHaveLength(2);
   });
 
   it.each([
@@ -227,7 +339,8 @@ describe('FmeaEntryDetailComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     element.querySelector<HTMLButtonElement>('.edit-button')?.click();
     fixture.detectChanges();
-    element.querySelector<HTMLButtonElement>('.delete-button')?.click();
+    const deleteButtons = element.querySelectorAll<HTMLButtonElement>('.delete-button');
+    deleteButtons[deleteButtons.length - 1]?.click();
     await fixture.whenStable();
 
     expect(dialogMock.open).toHaveBeenCalled();
@@ -239,7 +352,8 @@ describe('FmeaEntryDetailComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     element.querySelector<HTMLButtonElement>('.edit-button')?.click();
     fixture.detectChanges();
-    element.querySelector<HTMLButtonElement>('.delete-button')?.click();
+    const deleteButtons = element.querySelectorAll<HTMLButtonElement>('.delete-button');
+    deleteButtons[deleteButtons.length - 1]?.click();
     await fixture.whenStable();
 
     expect(fmeaServiceMock.deleteFmeaEntry).toHaveBeenCalledWith('entry-1');

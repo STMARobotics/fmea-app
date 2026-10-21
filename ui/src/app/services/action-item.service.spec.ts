@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
-import { ActionItem, ActionItemService, PartialActionItem } from './action-item.service';
+import { ActionItem, ActionItemService, EditableActionItem, PartialActionItem } from './action-item.service';
 import { FmeaService } from './fmea.service';
 
 describe('ActionItemService', () => {
@@ -45,20 +45,68 @@ describe('ActionItemService', () => {
   it('posts a new action item and returns the created action item', async () => {
     const result = firstValueFrom(service.createActionItem('entry-1', {
       description: actionItem.description,
+      status: 'not_started',
     }));
     const request = http.expectOne('/api/fmea/entry-1/action-items');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ description: actionItem.description });
+    expect(request.request.body).toEqual({ description: actionItem.description, status: 'not_started' });
     request.flush(actionItem);
     await expect(result).resolves.toEqual(actionItem);
+  });
+
+  it('replaces the action-item list in one request and notifies subscribers', async () => {
+    const changes: void[] = [];
+    const subscription = fmeaService.fmeaEntriesChanged$.subscribe(() => changes.push(undefined));
+    const actionItems: EditableActionItem[] = [
+      { id: 'entry-1:0', description: 'Updated description', status: 'complete' },
+      { id: null, description: 'New item', status: 'assembly_note' },
+    ];
+    const expectedLastUpdatedAt = '2026-02-01T00:00:00.000Z';
+    const response = {
+      actionItems: actionItems.map((item, index) => ({
+        ...item,
+        id: `entry-1:${index}`,
+        fmeaEntryId: 'entry-1',
+        lastUpdatedAt: new Date('2026-02-02'),
+      })),
+      lastUpdatedAt: new Date('2026-02-02'),
+    };
+    const result = firstValueFrom(service.replaceActionItems(
+      'entry-1',
+      expectedLastUpdatedAt,
+      actionItems,
+    ));
+    const request = http.expectOne('/api/fmea/entry-1/action-items');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ expectedLastUpdatedAt, actionItems });
+    request.flush(response);
+    await expect(result).resolves.toEqual(response);
+    subscription.unsubscribe();
+
+    expect(changes).toHaveLength(1);
   });
 
   it('reports an HTTP error when an action item cannot be created', async () => {
     const result = firstValueFrom(service.createActionItem('entry-1', {
       description: actionItem.description,
+      status: 'not_started',
     }));
     http.expectOne('/api/fmea/entry-1/action-items').flush({}, { status: 503, statusText: 'Unavailable' });
     await expect(result).rejects.toThrow('Unable to create action item (503).');
+  });
+
+  it('deletes an action item and notifies subscribers', async () => {
+    const changes: void[] = [];
+    const subscription = fmeaService.fmeaEntriesChanged$.subscribe(() => changes.push(undefined));
+    const result = firstValueFrom(service.deleteActionItem('action-1', actionItem.description));
+    const request = http.expectOne('/api/action-item/action-1');
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.body).toEqual({ expectedDescription: actionItem.description });
+    request.flush(null);
+    await expect(result).resolves.toBeUndefined();
+    subscription.unsubscribe();
+
+    expect(changes).toHaveLength(1);
   });
 
   it('reports an HTTP error when an action item cannot be updated', async () => {

@@ -135,9 +135,19 @@ export class BackendStack extends cdk.Stack {
       'update-action-item.handler.ts',
       table,
     );
+    const deleteActionItemHandler = this.createFmeaFunction(
+      'DeleteActionItemFunction',
+      'delete-action-item.handler.ts',
+      table,
+    );
     const createActionItemHandler = this.createFmeaFunction(
       'CreateActionItemFunction',
       'create-action-item.handler.ts',
+      table,
+    );
+    const replaceActionItemsHandler = this.createFmeaFunction(
+      'ReplaceActionItemsFunction',
+      'replace-action-items.handler.ts',
       table,
     );
 
@@ -159,7 +169,9 @@ export class BackendStack extends cdk.Stack {
     table.grantReadWriteData(updateFmeaEntryHandler);
     table.grantReadWriteData(deleteFmeaEntryHandler);
     table.grantReadWriteData(updateActionItemHandler);
+    table.grantReadWriteData(deleteActionItemHandler);
     table.grantReadWriteData(createActionItemHandler);
+    table.grantReadWriteData(replaceActionItemsHandler);
 
     const authorizerHandler = new nodejs.NodejsFunction(this, 'GoogleWorkspaceAuthorizer', {
       runtime: lambda.Runtime.NODEJS_24_X,
@@ -277,9 +289,19 @@ export class BackendStack extends cdk.Stack {
       integration: new integrations.HttpLambdaIntegration('UpdateActionItemIntegration', updateActionItemHandler),
     });
     this.httpApi.addRoutes({
+      path: '/api/action-item/{actionItemId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration('DeleteActionItemIntegration', deleteActionItemHandler),
+    });
+    this.httpApi.addRoutes({
       path: '/api/fmea/{fmeaId}/action-items',
       methods: [apigwv2.HttpMethod.POST],
       integration: new integrations.HttpLambdaIntegration('CreateActionItemIntegration', createActionItemHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/fmea/{fmeaId}/action-items',
+      methods: [apigwv2.HttpMethod.PUT],
+      integration: new integrations.HttpLambdaIntegration('ReplaceActionItemsIntegration', replaceActionItemsHandler),
     });
 
     new cdk.CfnOutput(this, 'ApiUrl', {

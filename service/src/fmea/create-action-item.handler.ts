@@ -8,6 +8,7 @@ import {
   getFmeaKey,
   getPathParameter,
   getTableName,
+  isActionItemStatus,
   jsonResponse,
   parseRequestBody,
   type HttpEvent,
@@ -16,13 +17,16 @@ import {
 export const handler = async (event: HttpEvent) => {
   const fmeaEntryId = getPathParameter(event, 'fmeaId');
   const request = parseRequestBody(event.body);
+  const status = request?.status ?? 'not_started';
   if (
     !fmeaEntryId ||
     !request ||
     typeof request.description !== 'string' ||
-    request.description.trim().length === 0
+    request.description.trim().length === 0 ||
+    (status !== 'not_started' && status !== 'assembly_note') ||
+    !isActionItemStatus(status)
   ) {
-    return jsonResponse(400, { message: 'A non-empty action item description is required.' });
+    return jsonResponse(400, { message: 'A non-empty description and valid creation status are required.' });
   }
 
   try {
@@ -47,7 +51,7 @@ export const handler = async (event: HttpEvent) => {
           L: [{
             M: {
               description: { S: request.description.trim() },
-              status: { S: 'not_started' },
+              status: { S: status },
               lastUpdated: { S: now },
             },
           }],
@@ -65,7 +69,7 @@ export const handler = async (event: HttpEvent) => {
     return jsonResponse(201, {
       id: `${fmeaEntryId}:${actionItems.length - 1}`,
       description: request.description.trim(),
-      status: 'not_started',
+      status,
       fmeaEntryId,
       lastUpdatedAt: now,
     });

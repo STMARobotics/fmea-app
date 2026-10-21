@@ -2,12 +2,14 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { getBearerToken, GoogleIdTokenError, verifyWorkspaceIdToken } from './auth/google-id-token.js';
 import { prodConfig } from '../../cdk/lib/config.js';
 import { handler as createActionItem } from './fmea/create-action-item.handler.js';
+import { handler as deleteActionItem } from './fmea/delete-action-item.handler.js';
 import { handler as createFmeaEntry } from './fmea/create-fmea-entry.handler.js';
 import { handler as deleteFmeaEntry } from './fmea/delete-fmea-entry.handler.js';
 import { handler as getFmeaEntry } from './fmea/get-fmea-entry.handler.js';
 import { handler as listFmeaEntries } from './fmea/list-fmea-entries.handler.js';
 import { handler as updateActionItem } from './fmea/update-action-item.handler.js';
 import { handler as updateFmeaEntry } from './fmea/update-fmea-entry.handler.js';
+import { handler as replaceActionItems } from './fmea/replace-action-items.handler.js';
 import { handler as createSeason } from './season/create-season.handler.js';
 import { handler as deleteSeason } from './season/delete-season.handler.js';
 import { handler as getSeason } from './season/get-season.handler.js';
@@ -62,7 +64,9 @@ const routes: { method: string; path: string; handler: ApiHandler }[] = [
   { method: 'PATCH', path: '/api/fmea/:fmeaId', handler: updateFmeaEntry },
   { method: 'DELETE', path: '/api/fmea/:fmeaId', handler: deleteFmeaEntry },
   { method: 'POST', path: '/api/fmea/:fmeaId/action-items', handler: createActionItem },
+  { method: 'PUT', path: '/api/fmea/:fmeaId/action-items', handler: replaceActionItems },
   { method: 'PATCH', path: '/api/action-item/:actionItemId', handler: updateActionItem },
+  { method: 'DELETE', path: '/api/action-item/:actionItemId', handler: deleteActionItem },
 ];
 
 const matchRoute = (method: string, pathname: string) => {

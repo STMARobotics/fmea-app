@@ -6,7 +6,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { catchError, distinctUntilChanged, firstValueFrom, map, Observable, of, startWith, switchMap } from 'rxjs';
 import { RatingCheatSheetComponent } from '../rating-cheat-sheet/rating-cheat-sheet.component';
-import { ActionItemService } from '../services/action-item.service';
+import {
+  ActionItemService,
+  ActionItemStatus,
+  EditableActionItem,
+} from '../services/action-item.service';
 import { FmeaEntry, FmeaService, PartialFmeaEntry } from '../services/fmea.service';
 import { NavigationHistoryService } from '../services/navigation-history.service';
 import { DeleteFmeaEntryDialogComponent } from './delete-fmea-entry-dialog.component';
@@ -15,6 +19,10 @@ type DetailState =
   | { kind: 'loading' }
   | { kind: 'loaded'; entry: FmeaEntry }
   | { kind: 'error'; message: string };
+
+type ActionItemDraft = EditableActionItem & {
+  clientId: string;
+};
 
 @Component({
   imports: [AsyncPipe, DatePipe, MatCardModule, RatingCheatSheetComponent, ReactiveFormsModule],
@@ -47,10 +55,11 @@ export class FmeaEntryDetailComponent {
   confirmingDelete = false;
   deleting = false;
   submissionError = '';
-  addingActionItem = false;
-  creatingActionItem = false;
-  newActionItemDescription = '';
+  editingActionItems = false;
+  savingActionItems = false;
+  actionItemDrafts: ActionItemDraft[] = [];
   actionItemError = '';
+  private nextActionItemDraftId = 0;
   private updatedEntry: FmeaEntry | null = null;
 
   readonly detailState$: Observable<DetailState> = this.route.paramMap.pipe(
@@ -103,39 +112,90 @@ export class FmeaEntryDetailComponent {
     return this.updatedEntry?.id === entry.id ? this.updatedEntry : entry;
   }
 
-  toggleActionItemForm(): void {
-    this.addingActionItem = !this.addingActionItem;
-    this.newActionItemDescription = '';
+  hasEmptyActionItemDrafts(): boolean {
+    return this.actionItemDrafts.some(item => !item.description.trim());
+  }
+
+  startEditingActionItems(entry: FmeaEntry): void {
+    if (this.editingActionItems) {
+      return;
+    }
+    this.actionItemDrafts = this.currentEntry(entry).actionItems.map(actionItem => ({
+      ...actionItem,
+      clientId: actionItem.id,
+    }));
+    this.editingActionItems = true;
     this.actionItemError = '';
   }
 
-  setActionItemDescription(event: Event): void {
-    this.newActionItemDescription = (event.target as HTMLTextAreaElement).value;
+  cancelEditingActionItems(): void {
+    this.editingActionItems = false;
+    this.actionItemDrafts = [];
+    this.actionItemError = '';
   }
 
-  async createActionItem(entry: FmeaEntry): Promise<void> {
-    const description = this.newActionItemDescription.trim();
-    if (!description || this.creatingActionItem) {
+  addActionItemDraft(): void {
+    this.actionItemDrafts = [...this.actionItemDrafts, {
+      clientId: `new-${this.nextActionItemDraftId++}`,
+      id: null,
+      description: '',
+      status: 'not_started',
+    }];
+  }
+
+  setActionItemDescription(clientId: string, event: Event): void {
+    const description = (event.target as HTMLInputElement).value;
+    this.actionItemDrafts = this.actionItemDrafts.map(item =>
+      item.clientId === clientId ? { ...item, description } : item,
+    );
+  }
+
+  setActionItemStatus(clientId: string, event: Event): void {
+    const status = (event.target as HTMLSelectElement).value as ActionItemStatus;
+    this.actionItemDrafts = this.actionItemDrafts.map(item =>
+      item.clientId === clientId ? { ...item, status } : item,
+    );
+  }
+
+  removeActionItemDraft(clientId: string): void {
+    this.actionItemDrafts = this.actionItemDrafts.filter(item => item.clientId !== clientId);
+  }
+
+  async saveActionItems(entry: FmeaEntry): Promise<void> {
+    if (
+      this.savingActionItems ||
+      this.actionItemDrafts.some(item => !item.description.trim())
+    ) {
       return;
     }
 
-    this.creatingActionItem = true;
+    this.savingActionItems = true;
     this.actionItemError = '';
     try {
-      const actionItem = await firstValueFrom(
-        this.actionItemService.createActionItem(entry.id, { description }),
-      );
+      const expectedLastUpdatedAt = typeof entry.lastUpdatedAt === 'string'
+        ? entry.lastUpdatedAt
+        : entry.lastUpdatedAt.toISOString();
+      const result = await firstValueFrom(this.actionItemService.replaceActionItems(
+        entry.id,
+        expectedLastUpdatedAt,
+        this.actionItemDrafts.map(({ id, description, status }) => ({
+          id,
+          description: description.trim(),
+          status,
+        })),
+      ));
       const current = this.currentEntry(entry);
       this.updatedEntry = {
         ...current,
-        actionItems: [...current.actionItems, actionItem],
+        actionItems: result.actionItems,
+        lastUpdatedAt: result.lastUpdatedAt,
       };
-      this.addingActionItem = false;
-      this.newActionItemDescription = '';
+      this.editingActionItems = false;
+      this.actionItemDrafts = [];
     } catch (error) {
-      this.actionItemError = error instanceof Error ? error.message : 'Unable to create action item.';
+      this.actionItemError = error instanceof Error ? error.message : 'Unable to save action items.';
     } finally {
-      this.creatingActionItem = false;
+      this.savingActionItems = false;
       this.changeDetectorRef.markForCheck();
     }
   }
@@ -146,6 +206,7 @@ export class FmeaEntryDetailComponent {
 
   startEditing(entry: FmeaEntry): void {
     const current = this.currentEntry(entry);
+    this.cancelEditingActionItems();
     this.form.reset({
       failureMode: current.failureMode,
       failureEffect: current.failureEffect,

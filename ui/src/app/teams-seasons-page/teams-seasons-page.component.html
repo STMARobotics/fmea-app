@@ -1,0 +1,122 @@
+<main class="management-page">
+  <header class="page-heading">
+    <p class="eyebrow">Configuration</p>
+    <h1>Teams &amp; seasons</h1>
+    <p>Manage the teams and competition seasons available in FMEA.</p>
+  </header>
+
+  @if (errorMessage(); as error) {
+    <p class="message error" role="alert">{{ error }}</p>
+  }
+  @if (successMessage(); as message) {
+    <p class="message success" role="status">{{ message }}</p>
+  }
+  @if (loading()) {
+    <p class="message" role="status">Loading teams and seasons…</p>
+  } @else {
+    <div class="management-grid">
+      <section class="management-card" aria-labelledby="teams-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Organization</p>
+            <h2 id="teams-heading">Teams</h2>
+          </div>
+          <span class="count">{{ teams().length }}</span>
+        </div>
+        <form [formGroup]="teamForm" (ngSubmit)="saveTeam()">
+          <h3>{{ editingTeamId() ? 'Edit team' : 'Add a team' }}</h3>
+          <label class="field">
+            <span>Program</span>
+            <select formControlName="program">
+              <option value="frc">FRC</option>
+              <option value="ftc">FTC</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Team number</span>
+            <input formControlName="teamNumber" type="number" min="1" step="1" required>
+            @if (teamForm.controls.teamNumber.touched && teamForm.controls.teamNumber.invalid) {
+              <span class="field-error">Enter a positive whole number.</span>
+            }
+          </label>
+          <label class="field">
+            <span>Team name</span>
+            <input formControlName="name" type="text" maxlength="120" required>
+            @if (teamForm.controls.name.touched && teamForm.controls.name.invalid) {
+              <span class="field-error">Enter a team name.</span>
+            }
+          </label>
+          <div class="form-actions">
+            <button class="primary-button" type="submit" [disabled]="saving()">
+              {{ saving() ? 'Saving…' : editingTeamId() ? 'Save team' : 'Add team' }}
+            </button>
+            @if (editingTeamId()) {
+              <button class="secondary-button" type="button" (click)="cancelTeamEdit()">Cancel</button>
+            }
+          </div>
+        </form>
+        <ul class="record-list">
+          @for (team of teams(); track team.id) {
+            <li>
+              <div>
+                <strong>{{ team.program.toUpperCase() }} {{ team.num }}</strong>
+                <span>{{ team.name }}</span>
+              </div>
+              <button class="secondary-button" type="button" (click)="editTeam(team)">Edit</button>
+            </li>
+          } @empty {
+            <li class="empty-list">No teams have been added yet.</li>
+          }
+        </ul>
+      </section>
+
+      <section class="management-card" aria-labelledby="seasons-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Competition</p>
+            <h2 id="seasons-heading">Seasons</h2>
+          </div>
+          <span class="count">{{ seasons().length }}</span>
+        </div>
+        <form [formGroup]="seasonForm" (ngSubmit)="saveSeason()">
+          <h3>{{ editingSeasonId() ? 'Edit season' : 'Add a season' }}</h3>
+          <label class="field">
+            <span>Program</span>
+            <select formControlName="program">
+              <option value="frc">FRC</option>
+              <option value="ftc">FTC</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Season name</span>
+            <input formControlName="name" type="text" maxlength="120" required>
+            @if (seasonForm.controls.name.touched && seasonForm.controls.name.invalid) {
+              <span class="field-error">Enter a season name.</span>
+            }
+          </label>
+          <div class="form-actions">
+            <button class="primary-button" type="submit" [disabled]="saving()">
+              {{ saving() ? 'Saving…' : editingSeasonId() ? 'Save season' : 'Add season' }}
+            </button>
+            @if (editingSeasonId()) {
+              <button class="secondary-button" type="button" (click)="cancelSeasonEdit()">Cancel</button>
+            }
+          </div>
+        </form>
+        <ul class="record-list">
+          @for (season of seasons(); track season.id) {
+            <li>
+              <div>
+                <strong>{{ season.program.toUpperCase() }}</strong>
+                <span>{{ season.name }}</span>
+              </div>
+              <button class="secondary-button" type="button" (click)="editSeason(season)">Edit</button>
+            </li>
+          } @empty {
+            <li class="empty-list">No seasons have been added yet.</li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
+</main>

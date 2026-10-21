@@ -115,6 +115,18 @@
   color: #b8c2cd;
 }
 
+@media (max-width: 1150px) {
+  .banner {
+    flex-wrap: wrap;
+  }
+
+  .banner-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+}
+
 mat-form-field {
   width: min(320px, 100%);
   margin: 0;

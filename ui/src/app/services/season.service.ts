@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from "@angular/core";
-import { map, Observable } from "rxjs";
+import { map, Observable, Subject, tap } from "rxjs";
 import { withApiError } from './api-error';
 
 export type Season = {
@@ -14,6 +14,7 @@ export type Season = {
 })
 export class SeasonService {
   private readonly http = inject(HttpClient);
+  readonly seasonsChanged$ = new Subject<void>();
 
   getAllSeasons(): Observable<Season[]> {
     return this.http.get<Season[]>('/api/seasons').pipe(withApiError('Unable to load seasons'));
@@ -28,6 +29,7 @@ export class SeasonService {
   createSeason(season: Pick<Season, 'program' | 'name'>): Observable<Season> {
     return this.http.post<Season>('/api/seasons', season).pipe(
       withApiError('Unable to create season'),
+      tap(() => this.seasonsChanged$.next()),
     );
   }
 
@@ -37,6 +39,7 @@ export class SeasonService {
   ): Observable<Season> {
     return this.http.patch<Season>(`/api/seasons/${encodeURIComponent(seasonId)}`, updates).pipe(
       withApiError('Unable to update season'),
+      tap(() => this.seasonsChanged$.next()),
     );
   }
 

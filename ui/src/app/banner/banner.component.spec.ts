@@ -54,8 +54,8 @@ describe('BannerComponent', () => {
       imports: [BannerComponent],
       providers: [
         provideRouter([]),
-        { provide: TeamService, useValue: { getAllTeams: () => of(teams) } },
-        { provide: SeasonService, useValue: { getAllSeasons: () => of(seasons) } },
+        { provide: TeamService, useValue: { getAllTeams: () => of(teams), teamsChanged$: new Subject<void>() } },
+        { provide: SeasonService, useValue: { getAllSeasons: () => of(seasons), seasonsChanged$: new Subject<void>() } },
         { provide: FmeaService, useValue: { getFmeaEntriesForTeam: getEntries, fmeaEntriesChanged$: fmeaEntriesChanged } },
         { provide: GoogleAuthService, useValue: auth },
       ],
@@ -90,13 +90,15 @@ describe('BannerComponent', () => {
     expect(helpLink.textContent.trim()).toBe('?');
   });
 
-  it('provides banner navigation to the FMEA table and action items', () => {
+  it('provides banner navigation to the FMEA and management pages', () => {
     const pageLinks = fixture.nativeElement.querySelectorAll('.page-nav-link') as NodeListOf<HTMLAnchorElement>;
 
     expect(Array.from(pageLinks).map(link => [link.textContent?.trim(), link.getAttribute('href')]))
       .toEqual([
         ['FMEA table', '/fmea'],
         ['Action items', '/action-items'],
+        ['Teams & seasons', '/manage/teams-seasons'],
+        ['Subsystems', '/manage/subsystems'],
       ]);
   });
 

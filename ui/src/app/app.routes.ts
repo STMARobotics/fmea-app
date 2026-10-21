@@ -4,9 +4,13 @@ import { FmeaPageComponent } from './fmea-page/fmea-page.component';
 import { FmeaInfoPageComponent } from './fmea-info-page/fmea-info-page.component';
 import { FmeaEntryCreatePageComponent } from './fmea-entry-create-page/fmea-entry-create-page.component';
 import { ActionItemsPageComponent } from './action-items-page/action-items-page.component';
+import { TeamsSeasonsPageComponent } from './teams-seasons-page/teams-seasons-page.component';
+import { SubsystemsPageComponent } from './subsystems-page/subsystems-page.component';
 
 export const routes: Routes = [
   { path: 'action-items', component: ActionItemsPageComponent },
+  { path: 'manage/teams-seasons', component: TeamsSeasonsPageComponent },
+  { path: 'manage/subsystems', component: SubsystemsPageComponent },
   { path: 'about-fmea', component: FmeaInfoPageComponent },
   { path: 'fmea/new', component: FmeaEntryCreatePageComponent },
   { path: 'fmea/:fmeaEntryId', component: FmeaEntryDetailComponent },

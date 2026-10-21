@@ -40,6 +40,11 @@ export const getTeamId = (event: HttpEvent): string | null => {
   return teamId && teamId.trim().length > 0 ? teamId : null;
 };
 
+export const getSubsystemId = (event: HttpEvent): string | null => {
+  const subsystemId = event.pathParameters?.subsystemId;
+  return subsystemId && subsystemId.trim().length > 0 ? subsystemId : null;
+};
+
 export const parseRequestBody = (body?: string | null): SubsystemRequest | null => {
   try {
     const parsed: unknown = JSON.parse(body ?? '');

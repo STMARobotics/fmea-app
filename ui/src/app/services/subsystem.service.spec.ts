@@ -60,4 +60,18 @@ describe('SubsystemService', () => {
     http.expectOne('/api/subsystems/team-1').flush({}, { status: 400, statusText: 'Bad Request' });
     await expect(result).rejects.toThrow('Unable to create subsystem (400).');
   });
+
+  it('updates a subsystem name through the API', async () => {
+    const result = firstValueFrom(service.updateSubsystem('team-1', 'subsystem-1', 'Drivetrain'));
+    const request = http.expectOne('/api/subsystems/team-1/subsystem-1');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ name: 'Drivetrain' });
+    request.flush({
+      id: 'subsystem-1',
+      teamId: 'team-1',
+      seasonId: 'season-1',
+      name: 'Drivetrain',
+    });
+    await expect(result).resolves.toMatchObject({ name: 'Drivetrain' });
+  });
 });

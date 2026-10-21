@@ -102,9 +102,13 @@ index (`gsi1pk = TEAMS`, `gsi1sk = {teamId}`) supports listing teams.
 | --- | --- | --- |
 | `GET` | `/api/subsystems/{teamId}` | List a team's subsystems |
 | `POST` | `/api/subsystems/{teamId}` | Create a subsystem with a JSON body containing `seasonId` and non-empty `name` |
+| `PATCH` | `/api/subsystems/{teamId}/{subsystemId}` | Update a subsystem's non-empty `name` |
 
 Subsystem metadata uses `pk = TEAM#{teamId}` and
 `sk = SUBSYSTEM#{subsystemId}`, with `seasonId` and `name` attributes.
+Use the **Teams & seasons** page to add or edit team and season metadata. Select
+a team and season in the header, then open **Subsystems** to add or rename
+subsystems for that selection.
 
 ## FMEA API
 

@@ -1,0 +1,67 @@
+<main class="subsystems-page">
+  <header class="page-heading">
+    <p class="eyebrow">Configuration</p>
+    <h1>Subsystems</h1>
+    <p>Manage the subsystems used to organize FMEA entries for the selected team and season.</p>
+  </header>
+
+  @if (selectedTeamId$ | async; as teamId) {
+    @if (selectedSeasonId$ | async; as seasonId) {
+      @if (errorMessage(); as error) {
+        <p class="message error" role="alert">{{ error }}</p>
+      }
+      @if (successMessage(); as message) {
+        <p class="message success" role="status">{{ message }}</p>
+      }
+      @if (state$ | async; as state) {
+        @if (state.kind === 'selection-required') {
+          <p class="message" role="status">Select a team and season in the header to manage subsystems.</p>
+        } @else if (state.kind === 'loading') {
+          <p class="message" role="status">Loading subsystems…</p>
+        } @else if (state.kind === 'error') {
+          <p class="message error" role="alert">{{ state.message }}</p>
+        } @else {
+          <section class="subsystems-card" aria-label="Subsystem management">
+            <p class="selection-note">Showing subsystems for the selected team and season.</p>
+            <form [formGroup]="createForm" (ngSubmit)="addSubsystem()">
+              <label class="field">
+                <span>Add a subsystem</span>
+                <input formControlName="name" type="text" maxlength="120" placeholder="e.g. Drive train" required>
+              </label>
+              <button class="primary-button" type="submit" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : 'Add subsystem' }}
+              </button>
+            </form>
+            <ul class="subsystem-list">
+              @for (subsystem of state.subsystems; track subsystem.id) {
+                <li>
+                  @if (editingSubsystemId() === subsystem.id) {
+                    <form class="edit-form" [formGroup]="editForm" (ngSubmit)="saveSubsystem(subsystem.id)">
+                      <label class="field">
+                        <span class="visually-hidden">Subsystem name</span>
+                        <input formControlName="name" type="text" maxlength="120" required>
+                      </label>
+                      <div class="row-actions">
+                        <button class="primary-button" type="submit" [disabled]="saving()">Save</button>
+                        <button class="secondary-button" type="button" (click)="cancelEdit()">Cancel</button>
+                      </div>
+                    </form>
+                  } @else {
+                    <strong>{{ subsystem.name }}</strong>
+                    <button class="secondary-button" type="button" (click)="editSubsystem(subsystem)">Edit</button>
+                  }
+                </li>
+              } @empty {
+                <li class="empty-list">No subsystems have been added for this team and season.</li>
+              }
+            </ul>
+          </section>
+        }
+      }
+    } @else {
+      <p class="message" role="status">Select a season in the header to manage its subsystems.</p>
+    }
+  } @else {
+    <p class="message" role="status">Select a team and season in the header to manage subsystems.</p>
+  }
+</main>

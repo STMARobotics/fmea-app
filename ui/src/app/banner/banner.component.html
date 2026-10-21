@@ -23,6 +23,8 @@
     <nav class="page-nav" aria-label="Main navigation">
       <a class="page-nav-link" routerLink="/fmea" routerLinkActive="active" ariaCurrentWhenActive="page">FMEA table</a>
       <a class="page-nav-link" routerLink="/action-items" routerLinkActive="active" ariaCurrentWhenActive="page">Action items</a>
+      <a class="page-nav-link" routerLink="/manage/teams-seasons" routerLinkActive="active" ariaCurrentWhenActive="page">Teams &amp; seasons</a>
+      <a class="page-nav-link" routerLink="/manage/subsystems" routerLinkActive="active" ariaCurrentWhenActive="page">Subsystems</a>
     </nav>
     @if (eventReadiness$ | async; as eventReadiness) {
       <div

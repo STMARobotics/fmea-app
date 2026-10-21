@@ -47,10 +47,17 @@ export class BannerComponent {
   private readonly selectedSeasonId$ = new BehaviorSubject<string | null>(this.selectedSeasonId);
 
   teams$: Observable<{ id: string, num: number, name: string, program: 'ftc' | 'frc' }[]> =
-    this.teamService.getAllTeams().pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    this.teamService.teamsChanged$.pipe(
+      startWith(undefined),
+      switchMap(() => this.teamService.getAllTeams()),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
 
   seasons$: Observable<{ id: string, program: 'ftc' | 'frc', name: string }[]> = combineLatest([
-    this.seasonService.getAllSeasons(),
+    this.seasonService.seasonsChanged$.pipe(
+      startWith(undefined),
+      switchMap(() => this.seasonService.getAllSeasons()),
+    ),
     this.selectedTeamId$,
     this.teams$,
   ]).pipe(

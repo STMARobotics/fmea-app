@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { signal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { App } from './app';
 import { GoogleAuthService } from './auth/google-auth.service';
 import { routes } from './app.routes';
@@ -36,8 +36,8 @@ describe('App', () => {
         provideRouter(routes),
         { provide: GoogleAuthService, useValue: authMock },
         { provide: FmeaService, useValue: { getFmeaEntriesForTeam: () => of([]), fmeaEntriesChanged$: of() } },
-        { provide: SeasonService, useValue: { getAllSeasons: () => of([]) } },
-        { provide: TeamService, useValue: { getAllTeams: () => of([]) } },
+        { provide: SeasonService, useValue: { getAllSeasons: () => of([]), seasonsChanged$: new Subject<void>() } },
+        { provide: TeamService, useValue: { getAllTeams: () => of([]), teamsChanged$: new Subject<void>() } },
       ],
     }).compileComponents();
 

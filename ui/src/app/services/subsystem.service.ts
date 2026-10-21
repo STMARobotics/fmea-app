@@ -32,4 +32,11 @@ export class SubsystemService {
       withApiError('Unable to create subsystem'),
     );
   }
+
+  updateSubsystem(teamId: string, subsystemId: string, name: string): Observable<Subsystem> {
+    return this.http.patch<Subsystem>(
+      `/api/subsystems/${encodeURIComponent(teamId)}/${encodeURIComponent(subsystemId)}`,
+      { name },
+    ).pipe(withApiError('Unable to update subsystem'));
+  }
 }

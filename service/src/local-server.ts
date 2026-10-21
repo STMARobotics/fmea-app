@@ -17,6 +17,7 @@ import { handler as listSeasons } from './season/list-seasons.handler.js';
 import { handler as updateSeason } from './season/update-season.handler.js';
 import { handler as createSubsystem } from './subsystem/create-subsystem.handler.js';
 import { handler as listSubsystems } from './subsystem/list-subsystems.handler.js';
+import { handler as updateSubsystem } from './subsystem/update-subsystem.handler.js';
 import { handler as createTeam } from './team/create-team.handler.js';
 import { handler as deleteTeam } from './team/delete-team.handler.js';
 import { handler as getTeam } from './team/get-team.handler.js';
@@ -58,6 +59,7 @@ const routes: { method: string; path: string; handler: ApiHandler }[] = [
   { method: 'DELETE', path: '/api/teams/:teamId', handler: deleteTeam },
   { method: 'GET', path: '/api/subsystems/:teamId', handler: listSubsystems },
   { method: 'POST', path: '/api/subsystems/:teamId', handler: createSubsystem },
+  { method: 'PATCH', path: '/api/subsystems/:teamId/:subsystemId', handler: updateSubsystem },
   { method: 'GET', path: '/api/fmea/:teamId/:seasonId', handler: listFmeaEntries },
   { method: 'POST', path: '/api/fmea/new', handler: createFmeaEntry },
   { method: 'GET', path: '/api/fmea/:fmeaId', handler: getFmeaEntry },

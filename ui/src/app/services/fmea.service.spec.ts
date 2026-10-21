@@ -38,6 +38,25 @@ describe('FmeaService', () => {
     await expect(result).resolves.toEqual(entries);
   });
 
+  it('shares an in-flight request for the same team and season', async () => {
+    const firstResult = firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1'));
+    const secondResult = firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1'));
+
+    http.expectOne('/api/fmea/team-1/season-1').flush(entries);
+
+    await expect(Promise.all([firstResult, secondResult])).resolves.toEqual([entries, entries]);
+  });
+
+  it('fetches fresh entries after the previous request completes', async () => {
+    const firstResult = firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1'));
+    http.expectOne('/api/fmea/team-1/season-1').flush(entries);
+    await firstResult;
+
+    const secondResult = firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1'));
+    http.expectOne('/api/fmea/team-1/season-1').flush(entries);
+    await expect(secondResult).resolves.toEqual(entries);
+  });
+
   it('reports an HTTP error when FMEA items cannot be loaded', async () => {
     const result = firstValueFrom(service.getFmeaEntriesForTeam('team-1', 'season-1'));
     http.expectOne('/api/fmea/team-1/season-1').flush({}, { status: 503, statusText: 'Unavailable' });

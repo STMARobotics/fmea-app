@@ -16,9 +16,13 @@ npm install
 Create a `service/.env` file, and add:
 ```
 TABLE_NAME=<dynamotablename>
+AWS_REGION=<region-containing-the-table>
 GOOGLE_CLIENT_ID=574028865613-b8apa4bcpai776gtsqm14mdej3iubeha.apps.googleusercontent.com
 ALLOWED_DOMAIN=stmarobotics.org
 ```
+
+Set `AWS_REGION` to the AWS region where the DynamoDB table lives (for example,
+`us-east-1`). You can find it in the table's AWS console page or its ARN.
 
 Log in to AWS IAM access portal, and copy the commands to set your AWS credentials into the environment. Run those commands.
 

@@ -35,15 +35,14 @@
             >
               <header class="column-header">
                 <h2>{{ column.title }}</h2>
-                <span class="column-count">{{ filteredItemsFor(column.actionItems).length }}</span>
+                <span class="column-count">{{ itemsForColumn(state.actionItems, column.status).length }}</span>
               </header>
-              @let visibleItems = filteredItemsFor(column.actionItems);
+              @let visibleItems = itemsForColumn(state.actionItems, column.status);
               @if (visibleItems.length > 0) {
                 <ul class="action-item-list">
                   @for (item of visibleItems; track item.id) {
                     <li
                       class="action-item"
-                      [class.saving]="isSaving(item.id)"
                       [attr.draggable]="!isSaving(item.id)"
                       (dragstart)="onDragStart(item, $event)"
                       (dragend)="onDragEnd()"
@@ -51,9 +50,6 @@
                       <div class="card-topline">
                         <span class="subsystem">{{ item.subsystem }}</span>
                       </div>
-                      @if (isSaving(item.id)) {
-                        <span class="saving-label" role="status">Saving status…</span>
-                      }
                       <p class="description">{{ item.description }}</p>
                       <p class="related-entry">
                         <a

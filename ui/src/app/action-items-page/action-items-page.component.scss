@@ -128,20 +128,9 @@
   cursor: grab;
 }
 
-.action-item.saving {
-  cursor: progress;
-  opacity: 0.7;
-  pointer-events: none;
-}
-
 .card-topline {
   display: flex;
   align-items: center;
-}
-
-.saving-label {
-  color: #85bdff;
-  font-size: 12px;
 }
 
 .subsystem {

@@ -130,6 +130,16 @@ describe('BannerComponent', () => {
     expect(component.selectedSeasonId).toBeNull();
   });
 
+  it('does not request readiness for a new team with the previous team season', () => {
+    component.onTeamSelected('ftc-team');
+    component.onSeasonSelected('ftc-season');
+    getEntries.mockClear();
+
+    component.onTeamSelected('frc-team');
+
+    expect(getEntries).not.toHaveBeenCalled();
+  });
+
   it.each([
     { entries: [{ ...entry, sev: 10, occ: 10, det: 4 }], expected: 'Not event ready' },
     {

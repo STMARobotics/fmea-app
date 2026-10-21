@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from "@angular/core";
-import { map, Observable, Subject, tap } from "rxjs";
+import { finalize, map, Observable, shareReplay, Subject, tap } from "rxjs";
 import { withApiError } from './api-error';
 
 export type FmeaEntry = {
@@ -54,16 +54,32 @@ export type CreateFmeaEntryRequest = PartialFmeaEntry & {
 export class FmeaService {
   private readonly http = inject(HttpClient);
   private readonly fmeaEntriesChangedSubject = new Subject<void>();
+  private readonly fmeaEntriesInFlight = new Map<string, Observable<FmeaEntry[]>>();
   readonly fmeaEntriesChanged$ = this.fmeaEntriesChangedSubject.asObservable();
 
   notifyFmeaEntriesChanged(): void {
+    this.fmeaEntriesInFlight.clear();
     this.fmeaEntriesChangedSubject.next();
   }
 
   getFmeaEntriesForTeam(teamId: string, seasonId: string): Observable<FmeaEntry[]> {
-    return this.http.get<FmeaEntry[]>(`/api/fmea/${encodeURIComponent(teamId)}/${encodeURIComponent(seasonId)}`).pipe(
+    const cacheKey = JSON.stringify([teamId, seasonId]);
+    const inFlightRequest = this.fmeaEntriesInFlight.get(cacheKey);
+    if (inFlightRequest) {
+      return inFlightRequest;
+    }
+
+    const request = this.http.get<FmeaEntry[]>(`/api/fmea/${encodeURIComponent(teamId)}/${encodeURIComponent(seasonId)}`).pipe(
       withApiError('Unable to load FMEA items'),
+      finalize(() => {
+        if (this.fmeaEntriesInFlight.get(cacheKey) === request) {
+          this.fmeaEntriesInFlight.delete(cacheKey);
+        }
+      }),
+      shareReplay({ bufferSize: 1, refCount: true }),
     );
+    this.fmeaEntriesInFlight.set(cacheKey, request);
+    return request;
   }
 
   getFmeaEntry(fmeaEntryId: string): Observable<FmeaEntry> {

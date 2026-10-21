@@ -117,6 +117,12 @@ describe('ActionItemsPageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
+    getEntries.mockReturnValueOnce(of([{
+      ...entry,
+      actionItems: entry.actionItems.map(item =>
+        item.id === 'action-1' ? { ...item, status: 'complete' as const } : item,
+      ),
+    }]));
     const actionItem = fixture.nativeElement.querySelector('.action-item') as HTMLElement;
     const completeColumn = fixture.nativeElement.querySelectorAll('.board-column')[3] as HTMLElement;
     actionItem.dispatchEvent(new Event('dragstart', { bubbles: true }));
@@ -132,6 +138,52 @@ describe('ActionItemsPageComponent', () => {
       fmeaEntryId: 'entry-1',
     });
     expect(getEntries).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.querySelectorAll('.board-column')[3].textContent)
+      .toContain('Add temperature monitoring');
+  });
+
+  it('keeps the board visible while reloading after a status update', async () => {
+    selection.selectTeam('team-1');
+    selection.selectSeason('season-1');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const refreshedEntries = new Subject<FmeaEntry[]>();
+    const updateResponse = new Subject<FmeaEntry['actionItems'][number]>();
+    getEntries.mockReturnValueOnce(refreshedEntries);
+    updateActionItem.mockReturnValue(updateResponse.pipe(tap(() => fmeaEntriesChanged.next())));
+    const actionItem = fixture.nativeElement.querySelector('.action-item') as HTMLElement;
+    const completeColumn = fixture.nativeElement.querySelectorAll('.board-column')[3] as HTMLElement;
+    actionItem.dispatchEvent(new Event('dragstart', { bubbles: true }));
+    completeColumn.dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.board')).not.toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.action-item')).toHaveLength(2);
+    expect(fixture.nativeElement.querySelectorAll('.board-column')[2].textContent)
+      .not.toContain('Add temperature monitoring');
+    expect(fixture.nativeElement.querySelectorAll('.board-column')[3].textContent)
+      .toContain('Add temperature monitoring');
+    expect(fixture.nativeElement.querySelector('.saving-label')).toBeNull();
+
+    updateResponse.next(entry.actionItems[0]);
+    updateResponse.complete();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.board-column')[3].textContent)
+      .toContain('Add temperature monitoring');
+    refreshedEntries.next([{
+      ...entry,
+      actionItems: entry.actionItems.map(item =>
+        item.id === 'action-1' ? { ...item, status: 'complete' as const } : item,
+      ),
+    }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('.board-column')[2].textContent)
+      .not.toContain('Add temperature monitoring');
+    expect(fixture.nativeElement.querySelectorAll('.board-column')[3].textContent)
+      .toContain('Add temperature monitoring');
   });
 
   it('shows an error when an action item status update fails', async () => {
@@ -150,6 +202,9 @@ describe('ActionItemsPageComponent', () => {
 
     expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent)
       .toContain('Unable to update action item (503).');
+    expect(fixture.nativeElement.querySelectorAll('.board-column')[2].textContent)
+      .toContain('Add temperature monitoring');
+    expect(fixture.nativeElement.querySelector('.saving-label')).toBeNull();
   });
 
   it('shows the empty state when the selected season has no action items', async () => {

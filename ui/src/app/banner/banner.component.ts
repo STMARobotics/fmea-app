@@ -85,9 +85,9 @@ export class BannerComponent {
     if (teamId !== this.selectedTeamId) {
       this.selectedSeasonId = null;
     }
+    this.selectedSeasonId$.next(this.selectedSeasonId);
     this.selectedTeamId = teamId;
     this.selectedTeamId$.next(teamId);
-    this.selectedSeasonId$.next(this.selectedSeasonId);
     if (teamId !== null) {
       this.teamChange.emit(teamId);
     }

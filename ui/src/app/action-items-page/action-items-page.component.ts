@@ -42,9 +42,15 @@ export class ActionItemsPageComponent {
   private readonly fmeaService = inject(FmeaService);
   private readonly listState = inject(FmeaListStateService);
   private readonly fmeaSelection = inject(FmeaSelectionService);
+  private lastLoadedState: {
+    teamId: string;
+    seasonId: string;
+    state: Extract<ActionItemsPageState, { kind: 'loaded' }>;
+  } | null = null;
 
   readonly selectedSubsystem = signal(this.listState.actionItemsSubsystem);
   readonly savingActionItemIds = signal(new Set<string>());
+  readonly optimisticStatuses = signal(new Map<string, ActionItemStatus>());
   readonly statusUpdateError = signal<string | null>(null);
   readonly draggedActionItem = signal<ActionItemView | null>(null);
   readonly dragTargetStatus = signal<ActionItemStatus | null>(null);
@@ -69,6 +75,11 @@ export class ActionItemsPageComponent {
         return of<ActionItemsPageState>({ kind: 'selection-required' });
       }
 
+      const cachedState = this.lastLoadedState?.teamId === teamId
+        && this.lastLoadedState.seasonId === seasonId
+        ? this.lastLoadedState.state
+        : { kind: 'loading' as const };
+
       return this.fmeaService.getFmeaEntriesForTeam(teamId, seasonId).pipe(
         map(entries => {
           const actionItems = entries.flatMap(entry =>
@@ -88,7 +99,11 @@ export class ActionItemsPageComponent {
             })),
           };
         }),
-        startWith<ActionItemsPageState>({ kind: 'loading' }),
+        tap(state => {
+          this.lastLoadedState = { teamId, seasonId, state };
+          this.optimisticStatuses.set(new Map());
+        }),
+        startWith<ActionItemsPageState>(cachedState),
         catchError((error: unknown) =>
           of<ActionItemsPageState>({
             kind: 'error',
@@ -104,11 +119,16 @@ export class ActionItemsPageComponent {
     this.listState.setActionItemsSubsystem(subsystem);
   }
 
-  filteredItemsFor(items: ActionItemView[]): ActionItemView[] {
+  itemsForColumn(items: ActionItemView[], status: ActionItemStatus): ActionItemView[] {
     const selectedSubsystem = this.selectedSubsystem();
-    return selectedSubsystem
-      ? items.filter(item => item.subsystem === selectedSubsystem)
-      : items;
+    const optimisticStatuses = this.optimisticStatuses();
+    return items.flatMap(item => {
+      const itemStatus = optimisticStatuses.get(item.id) ?? item.status;
+      return itemStatus === status
+        && (!selectedSubsystem || item.subsystem === selectedSubsystem)
+        ? [{ ...item, status: itemStatus }]
+        : [];
+    });
   }
 
   subsystemNamesFor(items: ActionItemView[]): string[] {
@@ -162,9 +182,15 @@ export class ActionItemsPageComponent {
       fmeaEntryId: item.fmeaEntryId,
     };
     this.statusUpdateError.set(null);
+    this.optimisticStatuses.update(statuses => new Map(statuses).set(item.id, status));
     this.savingActionItemIds.update(ids => new Set(ids).add(item.id));
     this.actionItemService.updateActionItem(item.id, update).subscribe({
       error: (error: unknown) => {
+        this.optimisticStatuses.update(statuses => {
+          const updatedStatuses = new Map(statuses);
+          updatedStatuses.delete(item.id);
+          return updatedStatuses;
+        });
         this.savingActionItemIds.update(ids => {
           const updatedIds = new Set(ids);
           updatedIds.delete(item.id);

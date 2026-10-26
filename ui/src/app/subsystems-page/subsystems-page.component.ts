@@ -1,9 +1,11 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { BehaviorSubject, catchError, combineLatest, firstValueFrom, map, Observable, of, startWith, switchMap } from 'rxjs';
 import { FmeaSelectionService } from '../services/fmea-selection.service';
 import { Subsystem, SubsystemService } from '../services/subsystem.service';
+import { DeleteSubsystemDialogComponent } from './delete-subsystem-dialog.component';
 
 type SubsystemsState =
   | { kind: 'selection-required' }
@@ -19,6 +21,7 @@ type SubsystemsState =
 })
 export class SubsystemsPageComponent {
   private readonly formBuilder = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
   private readonly fmeaSelection = inject(FmeaSelectionService);
   private readonly subsystemService = inject(SubsystemService);
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
@@ -27,6 +30,8 @@ export class SubsystemsPageComponent {
   readonly selectedSeasonId$ = this.fmeaSelection.selectedSeasonId$;
   readonly editingSubsystemId = signal<string | null>(null);
   readonly saving = signal(false);
+  readonly confirmingDelete = signal(false);
+  readonly deleting = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
 
@@ -128,6 +133,45 @@ export class SubsystemsPageComponent {
       this.errorMessage.set(this.errorText(error, 'Unable to update subsystem.'));
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  async deleteSubsystem(subsystem: Subsystem): Promise<void> {
+    if (this.saving() || this.confirmingDelete() || this.deleting()) {
+      return;
+    }
+    const teamId = this.fmeaSelection.selectedTeamId;
+    if (!teamId) {
+      this.errorMessage.set('Select a team before deleting a subsystem.');
+      return;
+    }
+
+    this.confirmingDelete.set(true);
+    this.clearMessages();
+    try {
+      const confirmed = await firstValueFrom(this.dialog.open(DeleteSubsystemDialogComponent, {
+        data: { subsystemName: subsystem.name },
+        panelClass: 'fmea-confirmation-dialog',
+        backdropClass: 'fmea-confirmation-backdrop',
+        width: '440px',
+        maxWidth: 'calc(100vw - 32px)',
+      }).afterClosed());
+      if (!confirmed) {
+        return;
+      }
+
+      this.deleting.set(true);
+      await firstValueFrom(this.subsystemService.deleteSubsystem(teamId, subsystem.id));
+      if (this.editingSubsystemId() === subsystem.id) {
+        this.cancelEdit();
+      }
+      this.successMessage.set('Subsystem deleted.');
+      this.refresh$.next();
+    } catch (error) {
+      this.errorMessage.set(this.errorText(error, 'Unable to delete subsystem.'));
+    } finally {
+      this.confirmingDelete.set(false);
+      this.deleting.set(false);
     }
   }
 

@@ -74,4 +74,12 @@ describe('SubsystemService', () => {
     });
     await expect(result).resolves.toMatchObject({ name: 'Drivetrain' });
   });
+
+  it('deletes a subsystem through the API', async () => {
+    const result = firstValueFrom(service.deleteSubsystem('team-1', 'subsystem-1'));
+    const request = http.expectOne('/api/subsystems/team-1/subsystem-1');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null);
+    await expect(result).resolves.toBeNull();
+  });
 });

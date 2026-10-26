@@ -1,0 +1,53 @@
+:host {
+  display: block;
+  color: #eef3f8;
+}
+
+.dialog-title {
+  margin: 0;
+  color: #f3f6fa;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+p {
+  margin: 0;
+  color: #b8c2cd;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+mat-dialog-actions {
+  gap: 8px;
+  padding: 16px 24px 20px;
+}
+
+button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #343940;
+  border-radius: 9px;
+  color: #dce1e6;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cancel-button {
+  background: #151719;
+}
+
+.cancel-button:hover {
+  background: #202327;
+}
+
+.confirm-delete {
+  border-color: #943f3f;
+  background: #5c2929;
+  color: #fff;
+}
+
+.confirm-delete:hover {
+  background: #713333;
+}

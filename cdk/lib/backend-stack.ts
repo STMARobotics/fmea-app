@@ -110,6 +110,11 @@ export class BackendStack extends cdk.Stack {
       'update-subsystem.handler.ts',
       table,
     );
+    const deleteSubsystemHandler = this.createSubsystemFunction(
+      'DeleteSubsystemFunction',
+      'delete-subsystem.handler.ts',
+      table,
+    );
     const listFmeaEntriesHandler = this.createFmeaFunction(
       'ListFmeaEntriesFunction',
       'list-fmea-entries.handler.ts',
@@ -169,6 +174,7 @@ export class BackendStack extends cdk.Stack {
     table.grantReadData(listSubsystemsHandler);
     table.grantReadWriteData(createSubsystemHandler);
     table.grantWriteData(updateSubsystemHandler);
+    table.grantWriteData(deleteSubsystemHandler);
     table.grantReadData(listFmeaEntriesHandler);
     table.grantReadData(getFmeaEntryHandler);
     table.grantReadWriteData(createFmeaEntryHandler);
@@ -268,6 +274,11 @@ export class BackendStack extends cdk.Stack {
       path: '/api/subsystems/{teamId}/{subsystemId}',
       methods: [apigwv2.HttpMethod.PATCH],
       integration: new integrations.HttpLambdaIntegration('UpdateSubsystemIntegration', updateSubsystemHandler),
+    });
+    this.httpApi.addRoutes({
+      path: '/api/subsystems/{teamId}/{subsystemId}',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration('DeleteSubsystemIntegration', deleteSubsystemHandler),
     });
     this.httpApi.addRoutes({
       path: '/api/fmea/{teamId}/{seasonId}',

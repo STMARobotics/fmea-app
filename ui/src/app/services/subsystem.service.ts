@@ -39,4 +39,10 @@ export class SubsystemService {
       { name },
     ).pipe(withApiError('Unable to update subsystem'));
   }
+
+  deleteSubsystem(teamId: string, subsystemId: string): Observable<void> {
+    return this.http.delete<void>(
+      `/api/subsystems/${encodeURIComponent(teamId)}/${encodeURIComponent(subsystemId)}`,
+    ).pipe(withApiError('Unable to delete subsystem'));
+  }
 }

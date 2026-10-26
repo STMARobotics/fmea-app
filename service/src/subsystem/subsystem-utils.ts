@@ -27,6 +27,14 @@ export const jsonResponse = (statusCode: number, body: unknown) => ({
   body: JSON.stringify(body),
 });
 
+export const emptyResponse = (statusCode: number) => ({
+  statusCode,
+  headers: {
+    'Access-Control-Allow-Origin': '*',
+  },
+  body: '',
+});
+
 export const getTableName = (): string => {
   const tableName = process.env.TABLE_NAME;
   if (!tableName) {

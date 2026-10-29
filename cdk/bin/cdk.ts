@@ -6,6 +6,7 @@ import { FrontendStack } from '../lib/frontend-stack';
 import { prodConfig } from '../lib/config';
 
 const app = new cdk.App();
+cdk.Tags.of(app).add('AppName', 'FMEA');
 const account = process.env.CDK_DEFAULT_ACCOUNT;
 
 // 1. Certificate stack MUST be in us-east-1 for CloudFront

@@ -11,12 +11,16 @@ export const fmeaIdIndexName = 'GSI2';
 
 export type ActionItemStatus = 'not_started' | 'in_progress' | 'assembly_note' | 'complete';
 export type HttpEvent = {
+  headers?: Record<string, string | undefined>;
   body?: string | null;
   pathParameters?: Record<string, string | undefined> | null;
   queryStringParameters?: Record<string, string | undefined> | null;
   requestContext?: {
     authorizer?: {
+      principalId?: string;
+      googleSub?: string;
       lambda?: {
+        googleSub?: string;
         email?: string;
         name?: string;
       };

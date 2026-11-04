@@ -1,5 +1,7 @@
 # fmea-app
 
+Cross-app integration foundation and rollout: [app harmonization](docs/app-harmonization.md).
+
 ## Local development
 
 The Angular development server can proxy API requests to a local Node server,

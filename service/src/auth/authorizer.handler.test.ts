@@ -15,7 +15,7 @@ test('creates an IAM policy with the requested principal, effect, and route', ()
   });
 });
 
-test('allows an active server-side session and supplies only account display context', async () => {
+test('allows an active server-side session and supplies verified account context', async () => {
   const policy = await authorizeRequest({
     headers: { cookie: `${cookieName}=opaque-session` },
     methodArn,
@@ -32,6 +32,7 @@ test('allows an active server-side session and supplies only account display con
 
   assert.equal(policy.principalId, 'google-sub');
   assert.deepEqual(policy.context, {
+    googleSub: 'google-sub',
     email: 'person@example.org',
     name: 'Example Person',
   });
@@ -43,18 +44,24 @@ test('denies a missing cookie and a revoked or expired session', async () => {
   const warnings: string[] = [];
   const originalWarn = console.warn;
   console.warn = (message?: unknown) => warnings.push(String(message));
+  const requestContext = { requestId: 'gateway-denial-id' };
   try {
-    const missing = await authorizeRequest({ headers: {}, methodArn });
+    const missing = await authorizeRequest({ headers: {}, methodArn, requestContext });
     const invalid = await authorizeRequest({
       headers: { cookie: `${cookieName}=expired-session` },
       methodArn,
+      requestContext,
     }, async () => { throw new Error('expired'); });
     const bearerOnly = await authorizeRequest({
-      headers: { Authorization: 'Bearer a-valid-google-token' },
+      headers: { Authorization: '******' },
       methodArn,
+      requestContext,
     });
     assert.equal(missing.policyDocument.Statement[0].Effect, 'Deny');
+    assert.equal(missing.policyDocument.Statement[0].Resource, methodArn);
     assert.equal(invalid.policyDocument.Statement[0].Effect, 'Deny');
+    assert.equal(invalid.principalId, 'unauthorized');
+    assert.equal(invalid.policyDocument.Statement[0].Resource, methodArn);
     assert.equal(bearerOnly.policyDocument.Statement[0].Effect, 'Deny');
   } finally {
     console.warn = originalWarn;
@@ -64,5 +71,6 @@ test('denies a missing cookie and a revoked or expired session', async () => {
     'invalid_server_session',
     'missing_session_cookie',
   ]);
+  assert.ok(warnings.every(message => JSON.parse(message).requestId === 'gateway-denial-id'));
   assert.equal(warnings.join(' ').includes('a-valid-google-token'), false);
 });

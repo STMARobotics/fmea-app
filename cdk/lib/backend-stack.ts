@@ -6,6 +6,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
+import { activityStream, configureActivityPublisher } from './activity-publisher';
 import * as path from 'path';
 
 interface BackendStackProps extends cdk.StackProps {
@@ -27,6 +28,7 @@ export class BackendStack extends cdk.Stack {
 
     // 1. DynamoDB Table
     const table = new dynamodb.Table(this, 'AppDataTable', {
+      stream: activityStream(this),
       partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -186,6 +188,7 @@ export class BackendStack extends cdk.Stack {
     table.grantReadWriteData(deleteActionItemHandler);
     table.grantReadWriteData(createActionItemHandler);
     table.grantReadWriteData(replaceActionItemsHandler);
+    configureActivityPublisher(this, table, [createFmeaEntryHandler, deleteFmeaEntryHandler], 'fmea');
 
     const authorizerHandler = new nodejs.NodejsFunction(this, 'GoogleWorkspaceAuthorizer', {
       runtime: lambda.Runtime.NODEJS_24_X,

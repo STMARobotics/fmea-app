@@ -13,6 +13,7 @@ export type AuthorizerPolicy = {
   context?: {
     email?: string;
     name?: string;
+    googleSub?: string;
   };
   policyDocument: {
     Version: '2012-10-17';
@@ -62,7 +63,7 @@ export const authorizeRequest = async (
       session.sub,
       'Allow',
       event.methodArn,
-      { email: session.email, name: session.name },
+      { googleSub: session.sub, email: session.email, name: session.name },
     );
   } catch {
     console.warn(JSON.stringify({ event: 'authorization_denied', reason: 'invalid_server_session', ...logContext }));

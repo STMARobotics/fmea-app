@@ -66,6 +66,7 @@ export class FmeaEntryCreatePageComponent {
 
   submitting = false;
   submissionError = '';
+  private pendingSubmission?: { payload: string; id: string };
 
   async onSubmit(): Promise<void> {
     const formValue = this.form.getRawValue();
@@ -94,7 +95,11 @@ export class FmeaEntryCreatePageComponent {
         occ: formValue.occ,
         det: formValue.det,
       };
-      const entry: FmeaEntry = await firstValueFrom(this.fmeaService.createFmeaEntry(payload));
+      const signature = JSON.stringify(payload);
+      if (this.pendingSubmission?.payload !== signature) {
+        this.pendingSubmission = { payload: signature, id: crypto.randomUUID() };
+      }
+      const entry: FmeaEntry = await firstValueFrom(this.fmeaService.createFmeaEntry(payload, this.pendingSubmission.id));
       await this.navigationHistory.navigateReplacingCurrent(`/fmea/${entry.id}`);
     } catch (error) {
       this.submissionError = error instanceof Error ? error.message : 'Unable to create this FMEA entry.';

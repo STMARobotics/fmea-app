@@ -17,6 +17,7 @@ export type AuthorizerPolicy = {
   context?: {
     email?: string;
     name?: string;
+    googleSub?: string;
   };
   policyDocument: {
     Version: '2012-10-17';
@@ -64,6 +65,7 @@ export const authorizeRequest = async (
       clientId: process.env.GOOGLE_CLIENT_ID,
     });
     const context = {
+      googleSub: payload.sub,
       ...(payload.email ? { email: payload.email } : {}),
       ...(payload.name ? { name: payload.name } : {}),
     };

@@ -26,6 +26,7 @@ import { handler as listTeams } from './team/list-teams.handler.js';
 import { handler as updateTeam } from './team/update-team.handler.js';
 
 type LambdaEvent = {
+  headers?: Record<string, string | undefined>;
   body?: string | null;
   pathParameters?: Record<string, string | undefined> | null;
   queryStringParameters?: Record<string, string | undefined> | null;
@@ -34,6 +35,7 @@ type LambdaEvent = {
       lambda?: {
         email?: string;
         name?: string;
+        googleSub?: string;
       };
     };
   };
@@ -136,13 +138,14 @@ const server = createServer(async (request, response) => {
       sendJson(response, 401, { message: 'Unauthorized' });
       return;
     }
-    let principalContext: { email?: string; name?: string } = {};
+    let principalContext: { email?: string; name?: string; googleSub?: string } = {};
     try {
       const payload = await verifyWorkspaceIdToken(token, {
         allowedDomain,
         clientId: googleClientId,
       });
       principalContext = {
+        googleSub: payload.sub,
         ...(payload.email ? { email: payload.email } : {}),
         ...(payload.name ? { name: payload.name } : {}),
       };
@@ -157,6 +160,7 @@ const server = createServer(async (request, response) => {
     }
 
     const result = await route.handler({
+      headers: { 'idempotency-key': typeof request.headers['idempotency-key'] === 'string' ? request.headers['idempotency-key'] : undefined },
       body: await readBody(request),
       pathParameters: route.pathParameters,
       queryStringParameters: Object.fromEntries(requestUrl.searchParams.entries()),

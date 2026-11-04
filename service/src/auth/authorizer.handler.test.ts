@@ -42,6 +42,7 @@ test('allows the verified Google sub for the current route', async () => {
 
     assert.equal(policy.principalId, 'google-sub');
     assert.deepEqual(policy.context, {
+      googleSub: 'google-sub',
       email: 'person@example.org',
       name: 'Example Person',
     });

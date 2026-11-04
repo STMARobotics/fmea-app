@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { FmeaEntry, FmeaService } from '../services/fmea.service';
 import { FmeaSelectionService } from '../services/fmea-selection.service';
 import { NavigationHistoryService } from '../services/navigation-history.service';
@@ -24,7 +24,7 @@ describe('FmeaEntryCreatePageComponent', () => {
     lastUpdatedAt: new Date('2026-01-01'),
     actionItems: [],
   };
-  const createFmeaEntry = vi.fn(() => of(createdEntry));
+  const createFmeaEntry = vi.fn((_request: unknown, _submissionId: string) => of(createdEntry));
   const navigateReplacingCurrent = vi.fn(() => Promise.resolve(true));
 
   beforeEach(async () => {
@@ -89,7 +89,19 @@ describe('FmeaEntryCreatePageComponent', () => {
       occ: 3,
       currentProcessControls: 'Thermal sensor',
       det: 2,
-    });
+    }, expect.any(String));
     expect(navigateReplacingCurrent).toHaveBeenCalledWith('/fmea/entry-1');
+  });
+
+  it('reuses the same submission key after an ambiguous failure and changes it for changed content', async () => {
+    component.form.setValue({subsystemId:'subsystem-1',failureMode:'Motor failure',failureEffect:'Robot cannot move',sev:8,potentialCauses:'Overheating',occ:3,currentProcessControls:'Thermal sensor',det:2});
+    createFmeaEntry.mockImplementationOnce(() => throwError(() => new Error('Connection lost')));
+    await component.onSubmit();
+    const firstKey = createFmeaEntry.mock.calls[0][1];
+    await component.onSubmit();
+    expect(createFmeaEntry.mock.calls[1][1]).toBe(firstKey);
+    component.form.controls.failureMode.setValue('A different failure');
+    await component.onSubmit();
+    expect(createFmeaEntry.mock.calls[2][1]).not.toBe(firstKey);
   });
 });

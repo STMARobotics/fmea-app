@@ -32,6 +32,9 @@ jobs:
       - name: Build Monorepo Workspaces
         run: npm run build
 
+      - name: Check shared activity contracts and transport round trips
+        run: npm run check:activity-contract
+
       - name: Run tests
         run: npm test
 

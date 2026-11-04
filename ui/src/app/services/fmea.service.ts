@@ -88,8 +88,8 @@ export class FmeaService {
     );
   }
 
-  createFmeaEntry(request: CreateFmeaEntryRequest): Observable<FmeaEntry> {
-    return this.http.post<FmeaEntry>('/api/fmea/new', request).pipe(
+  createFmeaEntry(request: CreateFmeaEntryRequest, submissionId: string = crypto.randomUUID()): Observable<FmeaEntry> {
+    return this.http.post<FmeaEntry>('/api/fmea/new', request, { headers: { 'Idempotency-Key': submissionId } }).pipe(
       withApiError('Unable to create FMEA item'),
       tap(() => this.notifyFmeaEntriesChanged()),
     );

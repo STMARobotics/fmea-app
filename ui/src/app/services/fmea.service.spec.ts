@@ -94,6 +94,7 @@ describe('FmeaService', () => {
     const request = http.expectOne('/api/fmea/new');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual(partialEntry);
+    expect(request.request.headers.get('Idempotency-Key')).toMatch(/^[a-f0-9-]{36}$/);
     request.flush(entries[0]);
     await expect(result).resolves.toEqual(entries[0]);
   });

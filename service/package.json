@@ -5,7 +5,7 @@
   "main": "src/handler.ts",
   "scripts": {
     "build": "tsc",
-    "test": "node --import tsx --test src/auth/*.test.ts",
+    "test": "node --import tsx --test src/auth/*.test.ts src/integration/*.test.ts src/fmea/*.test.ts",
     "dev": "node --env-file-if-exists=.env --import tsx src/local-server.ts"
   },
   "dependencies": {

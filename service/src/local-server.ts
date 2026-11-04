@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { getBearerToken, GoogleIdTokenError, verifyWorkspaceIdToken } from './auth/google-id-token.js';
+import { readServerSession, serverSessionHandler } from './auth/server-session.js';
 import { prodConfig } from '../../cdk/lib/config.js';
 import { handler as createActionItem } from './fmea/create-action-item.handler.js';
 import { handler as deleteActionItem } from './fmea/delete-action-item.handler.js';
@@ -111,8 +111,11 @@ const sendJson = (response: ServerResponse, statusCode: number, body: unknown) =
   response.end(JSON.stringify(body));
 };
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID ?? prodConfig.googleClientId;
-const allowedDomain = process.env.ALLOWED_DOMAIN ?? prodConfig.allowedDomain;
+process.env.GOOGLE_CLIENT_ID ??= prodConfig.googleClientId;
+process.env.ALLOWED_DOMAIN ??= prodConfig.allowedDomain;
+process.env.ALLOWED_ORIGIN ??= 'http://localhost:4200';
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const allowedDomain = process.env.ALLOWED_DOMAIN;
 
 const server = createServer(async (request, response) => {
   try {
@@ -125,34 +128,31 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (requestUrl.pathname.startsWith('/api/auth/')) {
+      const result = await serverSessionHandler({
+        rawPath: requestUrl.pathname,
+        headers: request.headers,
+        queryStringParameters: Object.fromEntries(requestUrl.searchParams.entries()),
+      });
+      response.statusCode = result.statusCode;
+      for (const [name, value] of Object.entries(result.headers)) response.setHeader(name, value);
+      if ('cookies' in result && result.cookies?.length) response.setHeader('Set-Cookie', result.cookies);
+      response.end(result.body);
+      return;
+    }
+
     const route = matchRoute(request.method ?? 'GET', requestUrl.pathname);
     if (!route) {
       sendJson(response, 404, { message: 'Not found' });
       return;
     }
 
-    const token = getBearerToken(request.headers.authorization);
-    if (!token) {
-      sendJson(response, 401, { message: 'Unauthorized' });
-      return;
-    }
     let principalContext: { email?: string; name?: string } = {};
     try {
-      const payload = await verifyWorkspaceIdToken(token, {
-        allowedDomain,
-        clientId: googleClientId,
-      });
-      principalContext = {
-        ...(payload.email ? { email: payload.email } : {}),
-        ...(payload.name ? { name: payload.name } : {}),
-      };
-    } catch (error) {
-      const statusCode = error instanceof GoogleIdTokenError
-        ? error.reason === 'domain-not-allowed' ? 403 : error.reason === 'configuration' ? 500 : 401
-        : 401;
-      sendJson(response, statusCode, {
-        message: statusCode === 403 ? 'Google Workspace account not allowed' : 'Unauthorized',
-      });
+      const session = await readServerSession(request.headers);
+      principalContext = { email: session.email, name: session.name };
+    } catch {
+      sendJson(response, 401, { message: 'Sign in with your Google Workspace account.' });
       return;
     }
 

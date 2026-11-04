@@ -45,7 +45,8 @@ describe('BannerComponent', () => {
     localStorage.removeItem('fmea.selectedSeasonId');
     const auth = {
       user: signal({ sub: 'google-sub', email: 'member@example.org', name: 'Workspace Member', picture: '' }),
-      renderSignInButton: vi.fn(),
+      restoreSession: vi.fn(),
+      signIn: vi.fn(),
       signOut: vi.fn(),
     };
     getEntries = vi.fn(() => of([]));

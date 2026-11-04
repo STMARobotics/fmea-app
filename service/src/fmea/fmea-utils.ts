@@ -67,6 +67,8 @@ export const jsonResponse = (statusCode: number, body: unknown) => ({
   statusCode,
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'private, no-store',
+    Vary: 'Cookie',
     'Access-Control-Allow-Origin': '*',
   },
   body: JSON.stringify(body),
@@ -74,7 +76,11 @@ export const jsonResponse = (statusCode: number, body: unknown) => ({
 
 export const emptyResponse = (statusCode: number) => ({
   statusCode,
-  headers: { 'Access-Control-Allow-Origin': '*' },
+  headers: {
+    'Cache-Control': 'private, no-store',
+    Vary: 'Cookie',
+    'Access-Control-Allow-Origin': '*',
+  },
   body: '',
 });
 

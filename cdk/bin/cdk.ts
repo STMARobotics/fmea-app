@@ -22,6 +22,7 @@ const backendStack = new BackendStack(app, prodConfig.backendStackName, {
   env: { account, region: 'us-east-2' },
   googleClientId: prodConfig.googleClientId,
   allowedDomain: prodConfig.allowedDomain,
+  googleClientSecretParameter: prodConfig.googleClientSecretParameter,
 });
 
 // 3. Frontend stack in us-east-2, passing the us-east-1 certificate and backend HTTP API

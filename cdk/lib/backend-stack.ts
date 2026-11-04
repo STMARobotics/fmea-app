@@ -11,6 +11,7 @@ import * as path from 'path';
 interface BackendStackProps extends cdk.StackProps {
   googleClientId: string;
   allowedDomain: string;
+  googleClientSecretParameter: string;
 }
 
 export class BackendStack extends cdk.Stack {
@@ -19,7 +20,7 @@ export class BackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: BackendStackProps) {
     super(scope, id, props);
 
-    const { googleClientId, allowedDomain } = props;
+    const { googleClientId, allowedDomain, googleClientSecretParameter } = props;
     if (!googleClientId?.trim() || !allowedDomain?.trim()) {
       throw new Error('Set googleClientId and allowedDomain in cdk/lib/config.ts before synthesis.');
     }
@@ -30,6 +31,7 @@ export class BackendStack extends cdk.Stack {
       sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
+      timeToLiveAttribute: 'ttl',
     });
 
     table.addGlobalSecondaryIndex({
@@ -196,11 +198,57 @@ export class BackendStack extends cdk.Stack {
       },
       timeout: cdk.Duration.seconds(10),
     });
+    authorizerHandler.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+      actions: ['dynamodb:GetItem'],
+      resources: [table.tableArn],
+      conditions: {
+        'ForAllValues:StringLike': {
+          'dynamodb:LeadingKeys': ['FMEA_SESSION#*'],
+        },
+      },
+    }));
+    const oauthHandler = new nodejs.NodejsFunction(this, 'ServerSessionHandler', {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
+      entry: path.join(__dirname, '../../service/src/auth/server-session.ts'),
+      handler: 'serverSessionHandler',
+      environment: {
+        TABLE_NAME: table.tableName,
+        GOOGLE_CLIENT_ID: googleClientId,
+        ALLOWED_DOMAIN: allowedDomain,
+        ALLOWED_ORIGIN: 'https://fmea.7028robotics.com',
+        GOOGLE_CLIENT_SECRET_PARAMETER: googleClientSecretParameter,
+      },
+      timeout: cdk.Duration.seconds(15),
+    });
+    oauthHandler.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+      actions: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem'],
+      resources: [table.tableArn],
+      conditions: {
+        'ForAllValues:StringLike': {
+          'dynamodb:LeadingKeys': ['FMEA_SESSION#*', 'FMEA_OAUTH#*'],
+        },
+      },
+    }));
+    oauthHandler.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [`arn:${cdk.Aws.PARTITION}:ssm:${this.region}:${this.account}:parameter${googleClientSecretParameter}`],
+    }));
+    oauthHandler.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+      actions: ['kms:Decrypt'],
+      resources: ['*'],
+      conditions: {
+        StringEquals: {
+          'kms:ViaService': `ssm.${this.region}.amazonaws.com`,
+          'kms:EncryptionContext:PARAMETER_ARN': `arn:${cdk.Aws.PARTITION}:ssm:${this.region}:${this.account}:parameter${googleClientSecretParameter}`,
+        },
+      },
+    }));
     const authorizer = new authorizers.HttpLambdaAuthorizer(
       'GoogleWorkspaceAuthorizer',
       authorizerHandler,
       {
-        identitySource: ['$request.header.Authorization'],
+        identitySource: ['$request.header.Cookie'],
         resultsCacheTtl: cdk.Duration.seconds(0),
         responseTypes: [authorizers.HttpLambdaResponseType.IAM],
       },
@@ -209,6 +257,23 @@ export class BackendStack extends cdk.Stack {
     this.httpApi = new apigwv2.HttpApi(this, 'fmea-api', {
       defaultAuthorizer: authorizer,
     });
+
+    for (const [route, method] of [
+      ['/api/auth/start', apigwv2.HttpMethod.GET],
+      ['/api/auth/callback', apigwv2.HttpMethod.GET],
+      ['/api/auth/session', apigwv2.HttpMethod.GET],
+      ['/api/auth/logout', apigwv2.HttpMethod.POST],
+    ] as const) {
+      this.httpApi.addRoutes({
+        path: route,
+        methods: [method],
+        authorizer: new apigwv2.HttpNoneAuthorizer(),
+        integration: new integrations.HttpLambdaIntegration(
+          `${route.replaceAll('/', '-')}-integration`,
+          oauthHandler,
+        ),
+      });
+    }
 
     this.httpApi.addRoutes({
       path: '/api/seasons',

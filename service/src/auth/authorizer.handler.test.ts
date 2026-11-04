@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { TokenPayload } from 'google-auth-library';
 import { authorizeRequest, createPolicy } from './authorizer.handler.js';
-import { GoogleIdTokenError, verifyWorkspaceIdToken } from './google-id-token.js';
 
 const methodArn = 'arn:aws:execute-api:us-east-2:123456789012:api-id/prod/GET/api/teams';
+const cookieName = process.env.AWS_LAMBDA_FUNCTION_NAME ? '__Host-fmea-session' : 'fmea-local-session';
 
 test('creates an IAM policy with the requested principal, effect, and route', () => {
   assert.deepEqual(createPolicy('google-sub', 'Allow', methodArn), {
@@ -16,81 +15,54 @@ test('creates an IAM policy with the requested principal, effect, and route', ()
   });
 });
 
-test('allows the verified Google sub for the current route', async () => {
-  const previousClientId = process.env.GOOGLE_CLIENT_ID;
-  const previousDomain = process.env.ALLOWED_DOMAIN;
-  const originalInfo = console.info;
-  let successLogs = 0;
-  console.info = () => { successLogs += 1; };
-  process.env.GOOGLE_CLIENT_ID = 'client-id';
-  process.env.ALLOWED_DOMAIN = 'example.org';
-  const verify = async (token: string, options: Parameters<typeof verifyWorkspaceIdToken>[1]) => {
-    assert.equal(token, 'id-token');
-    assert.deepEqual(options, { allowedDomain: 'example.org', clientId: 'client-id' });
+test('allows an active server-side session and supplies only account display context', async () => {
+  const policy = await authorizeRequest({
+    headers: { cookie: `${cookieName}=opaque-session` },
+    methodArn,
+  }, async headers => {
+    assert.equal(headers.cookie, `${cookieName}=opaque-session`);
     return {
       sub: 'google-sub',
       email: 'person@example.org',
       name: 'Example Person',
-    } as TokenPayload;
-  };
+      picture: '',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    };
+  });
 
-  try {
-    const policy = await authorizeRequest({
-      headers: { Authorization: 'Bearer id-token' },
-      methodArn,
-    }, verify);
-
-    assert.equal(policy.principalId, 'google-sub');
-    assert.deepEqual(policy.context, {
-      email: 'person@example.org',
-      name: 'Example Person',
-    });
-    assert.equal(policy.policyDocument.Statement[0].Effect, 'Allow');
-    assert.equal(policy.policyDocument.Statement[0].Resource, methodArn);
-    assert.equal(successLogs, 0);
-  } finally {
-    console.info = originalInfo;
-    if (previousClientId === undefined) delete process.env.GOOGLE_CLIENT_ID;
-    else process.env.GOOGLE_CLIENT_ID = previousClientId;
-    if (previousDomain === undefined) delete process.env.ALLOWED_DOMAIN;
-    else process.env.ALLOWED_DOMAIN = previousDomain;
-  }
+  assert.equal(policy.principalId, 'google-sub');
+  assert.deepEqual(policy.context, {
+    email: 'person@example.org',
+    name: 'Example Person',
+  });
+  assert.equal(policy.policyDocument.Statement[0].Effect, 'Allow');
+  assert.equal(policy.policyDocument.Statement[0].Resource, methodArn);
 });
 
-test('denies a missing token and a failed Workspace verification', async () => {
+test('denies a missing cookie and a revoked or expired session', async () => {
   const warnings: string[] = [];
   const originalWarn = console.warn;
   console.warn = (message?: unknown) => warnings.push(String(message));
-  const event = { headers: {}, methodArn, requestContext: { requestId: 'gateway-denial-id' } };
   try {
-    const missingToken = await authorizeRequest(event);
-    assert.equal(missingToken.policyDocument.Statement[0].Effect, 'Deny');
-    assert.equal(missingToken.policyDocument.Statement[0].Resource, methodArn);
-
-    const invalidToken = await authorizeRequest({
-      headers: { authorization: 'Bearer sensitive-id-token' },
+    const missing = await authorizeRequest({ headers: {}, methodArn });
+    const invalid = await authorizeRequest({
+      headers: { cookie: `${cookieName}=expired-session` },
       methodArn,
-      requestContext: { requestId: 'gateway-denial-id' },
-    }, async () => { throw new GoogleIdTokenError('domain-not-allowed'); });
-    assert.equal(invalidToken.principalId, 'unauthorized');
-    assert.equal(invalidToken.policyDocument.Statement[0].Effect, 'Deny');
+    }, async () => { throw new Error('expired'); });
+    const bearerOnly = await authorizeRequest({
+      headers: { Authorization: 'Bearer a-valid-google-token' },
+      methodArn,
+    });
+    assert.equal(missing.policyDocument.Statement[0].Effect, 'Deny');
+    assert.equal(invalid.policyDocument.Statement[0].Effect, 'Deny');
+    assert.equal(bearerOnly.policyDocument.Statement[0].Effect, 'Deny');
   } finally {
     console.warn = originalWarn;
   }
-
-  assert.deepEqual(warnings.map(message => JSON.parse(message)), [
-    {
-      event: 'authorization_denied',
-      reason: 'missing_bearer_token',
-      requestId: 'gateway-denial-id',
-      methodArn,
-    },
-    {
-      event: 'authorization_denied',
-      reason: 'domain-not-allowed',
-      requestId: 'gateway-denial-id',
-      methodArn,
-    },
+  assert.deepEqual(warnings.map(message => JSON.parse(message).reason), [
+    'missing_session_cookie',
+    'invalid_server_session',
+    'missing_session_cookie',
   ]);
-  assert.equal(warnings.join(' ').includes('sensitive-id-token'), false);
+  assert.equal(warnings.join(' ').includes('a-valid-google-token'), false);
 });

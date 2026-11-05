@@ -126,18 +126,21 @@ export async function finishServerOAuth(event: any) {
   const state = event.queryStringParameters?.state as string | undefined;
   const fromCookie = cookieValue(event.headers ?? {}, stateCookie());
   const clearState = cookie(stateCookie(), '', 0);
+  let failureStage = 'validate_state';
   try {
     if (!state || !fromCookie || Buffer.byteLength(state) !== Buffer.byteLength(fromCookie) ||
       !timingSafeEqual(Buffer.from(state), Buffer.from(fromCookie))) {
       throw new SessionFailure(401, 'OAuth state is invalid.');
     }
+    failureStage = 'consume_oauth_state';
     let pending;
     try {
       pending = await dynamoDB.send(new UpdateItemCommand({
         TableName: tableName(),
         Key: { pk: { S: `FMEA_OAUTH#${hash(state)}` }, sk: { S: 'METADATA' } },
-        UpdateExpression: 'SET consumed = :yes',
-        ConditionExpression: 'attribute_exists(pk) AND expiresAt > :now AND attribute_not_exists(consumed)',
+        UpdateExpression: 'SET #consumed = :yes',
+        ConditionExpression: 'attribute_exists(pk) AND expiresAt > :now AND attribute_not_exists(#consumed)',
+        ExpressionAttributeNames: { '#consumed': 'consumed' },
         ExpressionAttributeValues: { ':yes': { BOOL: true }, ':now': { S: new Date().toISOString() } },
         ReturnValues: 'ALL_OLD',
       }));
@@ -152,6 +155,7 @@ export async function finishServerOAuth(event: any) {
     if (!pendingItem?.verifier?.S || !pendingItem.nonce?.S || !code) {
       throw new SessionFailure(401, 'OAuth state or authorization code is missing.');
     }
+    failureStage = 'exchange_google_token';
     const origin = process.env.ALLOWED_ORIGIN!;
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -169,6 +173,7 @@ export async function finishServerOAuth(event: any) {
     if (!tokenResponse.ok) throw new SessionFailure(401, 'Google token exchange failed.');
     const tokens = await tokenResponse.json() as { id_token?: string };
     if (!tokens.id_token) throw new SessionFailure(401, 'Google did not return an ID token.');
+    failureStage = 'verify_google_identity';
     const payload = await verifyWorkspaceIdToken(tokens.id_token, {
       allowedDomain: process.env.ALLOWED_DOMAIN,
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -178,6 +183,7 @@ export async function finishServerOAuth(event: any) {
       !timingSafeEqual(Buffer.from(payload.nonce), Buffer.from(pendingItem.nonce.S))) {
       throw new SessionFailure(401, 'Google identity claims could not be verified.');
     }
+    failureStage = 'save_session';
     const token = randomBytes(32).toString('base64url');
     const expires = new Date(Date.now() + SESSION_SECONDS * 1000);
     await dynamoDB.send(new PutItemCommand({
@@ -191,7 +197,14 @@ export async function finishServerOAuth(event: any) {
     }));
     return redirect('/', [clearState, cookie(sessionCookie(), token, SESSION_SECONDS)]);
   } catch (error) {
-    console.warn(JSON.stringify({ event: 'oauth.callback.failure', errorType: error instanceof Error ? error.name : 'unknown' }));
+    console.warn(JSON.stringify({
+      event: 'oauth.callback.failure',
+      errorType: error instanceof Error ? error.name : 'unknown',
+      stage: failureStage,
+      ...(local() && error instanceof Error && error.name === 'ValidationException'
+        ? { errorMessage: error.message }
+        : {}),
+    }));
     const status = error instanceof SessionFailure
       ? error.status
       : error instanceof GoogleIdTokenError ? 401 : 503;

@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 import { BackendStack } from '../lib/backend-stack';
 
 test('application routes require the session authorizer and auth routes stay public', () => {
@@ -33,8 +33,10 @@ test('application routes require the session authorizer and auth routes stay pub
 		AuthorizerResultTtlInSeconds: 0,
 	});
 	template.hasResourceProperties('AWS::Lambda::Function', {
+		Handler: 'index.handler',
 		Environment: {
 			Variables: {
+				TABLE_NAME: Match.anyValue(),
 				GOOGLE_CLIENT_ID: 'test-web-client-id',
 				ALLOWED_DOMAIN: 'example.org',
 			},

@@ -196,6 +196,7 @@ export class BackendStack extends cdk.Stack {
       entry: path.join(__dirname, '../../service/src/auth/authorizer.handler.ts'),
       handler: 'handler',
       environment: {
+        TABLE_NAME: table.tableName,
         GOOGLE_CLIENT_ID: googleClientId,
         ALLOWED_DOMAIN: allowedDomain,
       },

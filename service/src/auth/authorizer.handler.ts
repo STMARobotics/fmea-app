@@ -1,7 +1,8 @@
-import { readServerSession } from './server-session.js';
+import { readServerSession, requestHeaders } from './server-session.js';
 
 export type HttpApiAuthorizerEvent = {
   headers?: Record<string, string | string[] | undefined>;
+  cookies?: string[];
   methodArn: string;
   requestContext?: {
     requestId?: string;
@@ -47,7 +48,7 @@ export const authorizeRequest = async (
     ...(event.requestContext?.requestId ? { requestId: event.requestContext.requestId } : {}),
     methodArn: event.methodArn,
   };
-  const headers = event.headers ?? {};
+  const headers = requestHeaders(event);
   const sessionCookieName = process.env.AWS_LAMBDA_FUNCTION_NAME
     ? '__Host-fmea-session'
     : 'fmea-local-session';

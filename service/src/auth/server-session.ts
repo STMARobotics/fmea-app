@@ -19,6 +19,12 @@ let secretCache: string | undefined;
 const ssm = new SSMClient({});
 
 type Headers = Record<string, string | string[] | undefined>;
+type SessionRequestEvent = {
+  headers?: Headers;
+  cookies?: string[];
+  queryStringParameters?: Record<string, string | undefined>;
+  rawPath?: string;
+};
 type Session = { sub: string; email: string; name: string; picture: string; expiresAt: string };
 class SessionFailure extends Error {
   constructor(readonly status: number, message: string) {
@@ -37,6 +43,17 @@ const cookieValue = (headers: Headers, name: string) => {
   return value
   ?.split(';').map(part => part.trim())
   .find(part => part.startsWith(`${name}=`))?.slice(name.length + 1);
+};
+export const requestHeaders = (event: Pick<SessionRequestEvent, 'headers' | 'cookies'>): Headers => {
+  const headerCookies = event.headers?.cookie;
+  const cookies = [
+    ...(Array.isArray(headerCookies) ? headerCookies : headerCookies ? [headerCookies] : []),
+    ...(event.cookies ?? []),
+  ];
+  return {
+    ...event.headers,
+    ...(cookies.length ? { cookie: cookies.join(';') } : {}),
+  };
 };
 const cookie = (name: string, value: string, age: number) =>
   `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${age}${local() ? '' : '; Secure'}`;
@@ -122,9 +139,9 @@ export async function beginServerOAuth() {
   return redirect(url.toString(), [cookie(stateCookie(), state, OAUTH_SECONDS)]);
 }
 
-export async function finishServerOAuth(event: any) {
-  const state = event.queryStringParameters?.state as string | undefined;
-  const fromCookie = cookieValue(event.headers ?? {}, stateCookie());
+export async function finishServerOAuth(event: SessionRequestEvent) {
+  const state = event.queryStringParameters?.state;
+  const fromCookie = cookieValue(requestHeaders(event), stateCookie());
   const clearState = cookie(stateCookie(), '', 0);
   let failureStage = 'validate_state';
   try {
@@ -151,7 +168,7 @@ export async function finishServerOAuth(event: any) {
       throw error;
     }
     const pendingItem = pending.Attributes;
-    const code = event.queryStringParameters?.code as string | undefined;
+    const code = event.queryStringParameters?.code;
     if (!pendingItem?.verifier?.S || !pendingItem.nonce?.S || !code) {
       throw new SessionFailure(401, 'OAuth state or authorization code is missing.');
     }
@@ -228,15 +245,15 @@ export async function endServerSession(headers: Headers) {
   ]);
 }
 
-export const serverSessionHandler = async (event: any) => {
+export const serverSessionHandler = async (event: SessionRequestEvent) => {
   const path = event.rawPath ?? '';
   try {
     if (path === '/api/auth/start') return await beginServerOAuth();
     if (path === '/api/auth/callback') return await finishServerOAuth(event);
-    if (path === '/api/auth/logout') return await endServerSession(event.headers ?? {});
+    if (path === '/api/auth/logout') return await endServerSession(requestHeaders(event));
     if (path === '/api/auth/session') {
       try {
-        const session = await readServerSession(event.headers ?? {});
+        const session = await readServerSession(requestHeaders(event));
         return response(200, { sub: session.sub, email: session.email, name: session.name, picture: session.picture }, { 'content-type': 'application/json' });
       } catch {
         return response(401, { message: 'Sign in with your Google Workspace account.' }, { 'content-type': 'application/json' });

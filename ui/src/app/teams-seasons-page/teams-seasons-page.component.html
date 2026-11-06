@@ -21,27 +21,28 @@
             <p class="eyebrow">Organization</p>
             <h2 id="teams-heading">Teams</h2>
           </div>
-          <span class="count">{{ teams().length }}</span>
         </div>
         <form [formGroup]="teamForm" (ngSubmit)="saveTeam()">
           <h3>{{ editingTeamId() ? 'Edit team' : 'Add a team' }}</h3>
-          <label class="field">
-            <span>Program</span>
-            <select formControlName="program">
-              <option value="frc">FRC</option>
-              <option value="ftc">FTC</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Team number</span>
-            <input formControlName="teamNumber" type="number" min="1" step="1" required>
-            @if (teamForm.controls.teamNumber.touched && teamForm.controls.teamNumber.invalid) {
-              <span class="field-error">Enter a positive whole number.</span>
-            }
-          </label>
+          <div class="field-row">
+            <label class="field">
+              <span>Program</span>
+              <select formControlName="program">
+                <option value="frc">FRC</option>
+                <option value="ftc">FTC</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Team number</span>
+              <input formControlName="teamNumber" type="number" min="1" step="1" placeholder="7028" required>
+              @if (teamForm.controls.teamNumber.touched && teamForm.controls.teamNumber.invalid) {
+                <span class="field-error">Enter a positive whole number.</span>
+              }
+            </label>
+          </div>
           <label class="field">
             <span>Team name</span>
-            <input formControlName="name" type="text" maxlength="120" required>
+            <input formControlName="name" type="text" maxlength="120" placeholder="Binary Battalion" required>
             @if (teamForm.controls.name.touched && teamForm.controls.name.invalid) {
               <span class="field-error">Enter a team name.</span>
             }
@@ -76,7 +77,6 @@
             <p class="eyebrow">Competition</p>
             <h2 id="seasons-heading">Seasons</h2>
           </div>
-          <span class="count">{{ seasons().length }}</span>
         </div>
         <form [formGroup]="seasonForm" (ngSubmit)="saveSeason()">
           <h3>{{ editingSeasonId() ? 'Edit season' : 'Add a season' }}</h3>
@@ -89,7 +89,7 @@
           </label>
           <label class="field">
             <span>Season name</span>
-            <input formControlName="name" type="text" maxlength="120" required>
+            <input formControlName="name" type="text" maxlength="120" placeholder="2027 BIOCORE" required>
             @if (seasonForm.controls.name.touched && seasonForm.controls.name.invalid) {
               <span class="field-error">Enter a season name.</span>
             }
@@ -107,8 +107,8 @@
           @for (season of seasons(); track season.id) {
             <li>
               <div>
-                <strong>{{ season.program.toUpperCase() }}</strong>
-                <span>{{ season.name }}</span>
+                <strong>{{ season.name }}</strong>
+                <span>{{ season.program.toUpperCase() }}</span>
               </div>
               <button class="secondary-button" type="button" (click)="editSeason(season)">Edit</button>
             </li>

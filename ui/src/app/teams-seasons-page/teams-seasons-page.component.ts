@@ -26,7 +26,7 @@ export class TeamsSeasonsPageComponent implements OnInit {
 
   readonly teamForm = this.formBuilder.nonNullable.group({
     program: this.formBuilder.nonNullable.control<Team['program']>('frc'),
-    teamNumber: this.formBuilder.nonNullable.control(1, [
+    teamNumber: this.formBuilder.nonNullable.control<number | null>(null, [
       Validators.required,
       Validators.min(1),
       Validators.pattern(/^[1-9]\d*$/),
@@ -73,7 +73,7 @@ export class TeamsSeasonsPageComponent implements OnInit {
 
   cancelTeamEdit(): void {
     this.editingTeamId.set(null);
-    this.teamForm.reset({ program: 'frc', teamNumber: 1, name: '' });
+    this.teamForm.reset({ program: 'frc', teamNumber: null, name: '' });
   }
 
   async saveTeam(): Promise<void> {
@@ -82,6 +82,10 @@ export class TeamsSeasonsPageComponent implements OnInit {
       return;
     }
     const formValue = this.teamForm.getRawValue();
+    if (formValue.teamNumber === null) {
+      this.teamForm.controls.teamNumber.markAsTouched();
+      return;
+    }
     this.saving.set(true);
     this.clearMessages();
     try {
@@ -102,7 +106,11 @@ export class TeamsSeasonsPageComponent implements OnInit {
         team,
       ]));
       this.successMessage.set(editingId ? 'Team updated.' : 'Team created.');
-      this.cancelTeamEdit();
+      if (editingId) {
+        this.cancelTeamEdit();
+      } else {
+        this.teamForm.reset({ program: formValue.program, teamNumber: null, name: '' });
+      }
     } catch (error) {
       this.errorMessage.set(this.errorText(error, 'Unable to save team.'));
     } finally {
@@ -146,7 +154,11 @@ export class TeamsSeasonsPageComponent implements OnInit {
         season,
       ]));
       this.successMessage.set(editingId ? 'Season updated.' : 'Season created.');
-      this.cancelSeasonEdit();
+      if (editingId) {
+        this.cancelSeasonEdit();
+      } else {
+        this.seasonForm.reset({ program: formValue.program, name: '' });
+      }
     } catch (error) {
       this.errorMessage.set(this.errorText(error, 'Unable to save season.'));
     } finally {

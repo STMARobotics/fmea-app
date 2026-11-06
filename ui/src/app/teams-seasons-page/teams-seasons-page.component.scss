@@ -58,18 +58,6 @@ h1 {
   font-size: 23px;
 }
 
-.count {
-  display: grid;
-  min-width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 1px solid #343940;
-  border-radius: 50%;
-  color: #c8d1db;
-  font-size: 13px;
-  font-weight: 700;
-}
-
 form {
   display: grid;
   gap: 13px;
@@ -80,6 +68,12 @@ form {
 form h3 {
   margin-bottom: 2px;
   font-size: 16px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  gap: 13px;
 }
 
 .field {
@@ -102,6 +96,10 @@ form h3 {
   color: #eef3f8;
   font: inherit;
   font-weight: 400;
+}
+
+.field input::placeholder {
+  color: #69717a;
 }
 
 .field input:focus,
@@ -224,5 +222,9 @@ button:disabled {
 @media (max-width: 600px) {
   .management-page {
     padding: 22px 18px 36px;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
   }
 }

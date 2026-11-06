@@ -66,8 +66,13 @@ export const authorizeRequest = async (
       event.methodArn,
       { googleSub: session.sub, email: session.email, name: session.name },
     );
-  } catch {
-    console.warn(JSON.stringify({ event: 'authorization_denied', reason: 'invalid_server_session', ...logContext }));
+  } catch (error) {
+    console.warn(JSON.stringify({
+      event: 'authorization_denied',
+      reason: 'invalid_server_session',
+      failureType: error instanceof Error ? error.name : 'unknown',
+      ...logContext,
+    }));
     return createPolicy('unauthorized', 'Deny', event.methodArn);
   }
 };

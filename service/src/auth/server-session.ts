@@ -45,9 +45,11 @@ const cookieValue = (headers: Headers, name: string) => {
   .find(part => part.startsWith(`${name}=`))?.slice(name.length + 1);
 };
 export const requestHeaders = (event: Pick<SessionRequestEvent, 'headers' | 'cookies'>): Headers => {
-  const headerCookies = event.headers?.cookie;
+  const headerCookies = Object.entries(event.headers ?? {})
+    .filter(([name]) => name.toLowerCase() === 'cookie')
+    .flatMap(([, value]) => Array.isArray(value) ? value : value ? [value] : []);
   const cookies = [
-    ...(Array.isArray(headerCookies) ? headerCookies : headerCookies ? [headerCookies] : []),
+    ...headerCookies,
     ...(event.cookies ?? []),
   ];
   return {

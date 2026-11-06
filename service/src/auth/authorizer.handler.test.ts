@@ -59,6 +59,24 @@ test('reads cookies from an HTTP API v2 cookie array', async () => {
   assert.equal(policy.policyDocument.Statement[0].Effect, 'Allow');
 });
 
+test('reads cookies from an authorizer header regardless of header casing', async () => {
+  const policy = await authorizeRequest({
+    headers: { Cookie: `${cookieName}=opaque-session` },
+    methodArn,
+  }, async headers => {
+    assert.equal(headers.cookie, `${cookieName}=opaque-session`);
+    return {
+      sub: 'google-sub',
+      email: 'person@example.org',
+      name: 'Example Person',
+      picture: '',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    };
+  });
+
+  assert.equal(policy.policyDocument.Statement[0].Effect, 'Allow');
+});
+
 test('denies a missing cookie and a revoked or expired session', async () => {
   const warnings: string[] = [];
   const originalWarn = console.warn;

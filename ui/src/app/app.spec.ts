@@ -21,10 +21,10 @@ describe('App', () => {
     configurationError: signal(false),
     signInError: signal(false),
     isAuthenticated: signal(true),
-    token: 'test-id-token',
     handleAuthorizationFailure: vi.fn(),
     signOut: vi.fn(),
-    renderSignInButton: vi.fn(),
+    restoreSession: vi.fn(),
+    signIn: vi.fn(),
   };
 
   beforeEach(async () => {

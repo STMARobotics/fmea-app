@@ -19,8 +19,10 @@ Create a `service/.env` file, and add:
 ```
 TABLE_NAME=<dynamotablename>
 AWS_REGION=<region-containing-the-table>
-GOOGLE_CLIENT_ID=574028865613-b8apa4bcpai776gtsqm14mdej3iubeha.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=574028865613-kh9gccmi9ccfqsv7s89rdttf7cc1ohj4.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=<local-only OAuth client secret>
 ALLOWED_DOMAIN=stmarobotics.org
+ALLOWED_ORIGIN=http://localhost:4200
 ```
 
 Set `AWS_REGION` to the AWS region where the DynamoDB table lives (for example,
@@ -47,22 +49,22 @@ Open `http://localhost:4200`.The UI proxy sends `/api` requests to
 
 ## Google OIDC
 
-Create a Google OAuth 2.0 Web application client and add these authorized
-JavaScript origins: `http://localhost:4200` and
-`https://fmea.7028robotics.com`. No redirect URI is needed; Google Identity
-Services opens its sign-in popup. The client ID is public frontend configuration,
-not a client secret. Set `googleClientId` and `allowedDomain` in
-`cdk/lib/config.ts`, the deployed frontend, and the local API all read those
-values from that file. Use the Workspace domain present in the ID token's `hd`
-claim.
+Create a dedicated Google OAuth 2.0 Web application client. Add
+`http://localhost:4200/api/auth/callback` and
+`https://fmea.7028robotics.com/api/auth/callback` as authorized redirect URIs.
+The client ID is public frontend configuration; keep the client secret in local
+`service/.env` only and in AWS Systems Manager Parameter Store as a SecureString
+named `/fmea/google-client-secret`. Set the new client ID and this parameter
+name in `cdk/lib/config.ts`. The app stores only an opaque, HttpOnly session
+cookie in the browser; the server stores and expires the session after seven
+days. Sign out revokes it server-side.
 
 ```bash
 npm run cdk:synth
 ```
 
-The UI loads `/config.json` at runtime. Locally, the API serves reads the values from
-the environment. The frontend stack publishes the same values with the deployed assets.
-You can temporarily override either value in `service/.env` for local testing. Keep
+The frontend stack publishes the public client configuration with the deployed assets.
+Locally, the API serves the client settings from the environment. Keep
 `service/.env` out of version control.
 
 ## Season API

@@ -9,12 +9,7 @@ export const googleAuthInterceptor: HttpInterceptorFn = (request, next) => {
   }
 
   const auth = inject(GoogleAuthService);
-  const token = auth.token;
-  if (!token) {
-    return throwError(() => new HttpErrorResponse({ status: 401, statusText: 'Unauthorized' }));
-  }
-
-  return next(request.clone({ setHeaders: { Authorization: `Bearer ${token}` } })).pipe(
+  return next(request.clone({ withCredentials: true })).pipe(
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
         auth.handleAuthorizationFailure(error.status);

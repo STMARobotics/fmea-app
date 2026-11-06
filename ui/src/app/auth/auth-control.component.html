@@ -19,5 +19,7 @@
     <button mat-menu-item (click)="auth.signOut()">Sign out</button>
   </mat-menu>
 } @else {
-  <div #googleSignInButton class="google-sign-in-button"></div>
+  <button class="google-sign-in-button" type="button" (click)="auth.signIn()">
+    Sign in with Google
+  </button>
 }

@@ -9,13 +9,15 @@ describe('AuthControlComponent', () => {
   let fixture: ComponentFixture<AuthControlComponent>;
   const auth = {
     user: signal<{ sub: string; email: string; name: string; picture: string } | null>(null),
-    renderSignInButton: vi.fn(),
+    restoreSession: vi.fn(),
+    signIn: vi.fn(),
     signOut: vi.fn(),
   };
 
   beforeEach(async () => {
     auth.user.set(null);
-    auth.renderSignInButton.mockClear();
+    auth.restoreSession.mockClear();
+    auth.signIn.mockClear();
     auth.signOut.mockClear();
     await TestBed.configureTestingModule({
       imports: [AuthControlComponent],
@@ -25,9 +27,9 @@ describe('AuthControlComponent', () => {
     fixture.detectChanges();
   });
 
-  it('renders the GIS button when signed out', () => {
+  it('renders the server-session sign-in button when signed out', () => {
     expect(fixture.nativeElement.querySelector('.google-sign-in-button')).toBeTruthy();
-    expect(auth.renderSignInButton).toHaveBeenCalledOnce();
+    expect(auth.restoreSession).toHaveBeenCalledOnce();
   });
 
   it('shows account details and signs out from the menu', async () => {

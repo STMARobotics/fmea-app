@@ -2,11 +2,12 @@ import * as cdk from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { BackendStack } from '../lib/backend-stack';
 
-test('all HTTP API routes require the Google Workspace authorizer', () => {
+test('application routes require the session authorizer and auth routes stay public', () => {
 	const app = new cdk.App();
 	const stack = new BackendStack(app, 'BackendStack', {
 		googleClientId: 'test-web-client-id',
 		allowedDomain: 'example.org',
+		googleClientSecretParameter: '/fmea/test/google-client-secret',
 	});
 	const template = Template.fromStack(stack);
 	const functions = Object.values(template.findResources('AWS::Lambda::Function'));
@@ -18,12 +19,16 @@ test('all HTTP API routes require the Google Workspace authorizer', () => {
 
 	expect(routes.length).toBeGreaterThan(0);
 	for (const route of routes) {
-		expect(route.Properties.AuthorizationType).toBe('CUSTOM');
-		expect(route.Properties.AuthorizerId).toBeDefined();
+		if (String(route.Properties.RouteKey).includes('/api/auth/')) {
+			expect(route.Properties.AuthorizationType).toBe('NONE');
+		} else {
+			expect(route.Properties.AuthorizationType).toBe('CUSTOM');
+			expect(route.Properties.AuthorizerId).toBeDefined();
+		}
 	}
 	template.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', {
 		AuthorizerType: 'REQUEST',
-		IdentitySource: ['$request.header.Authorization'],
+		IdentitySource: ['$request.header.Cookie'],
 		AuthorizerPayloadFormatVersion: '1.0',
 		AuthorizerResultTtlInSeconds: 0,
 	});
